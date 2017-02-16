@@ -1,0 +1,12 @@
+build
+cmake-build-debug/
+
+*~
+*.swp
+
+.idea
+*.cproject
+*.project
+*.externalToolBuilders
+.settings
+.metadata
