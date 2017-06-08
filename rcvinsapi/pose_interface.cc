@@ -21,12 +21,11 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include <cpr/cpr.h>
 #include <json.hpp>
 
-// TODO remove later
-#include <ros/ros.h>
 
 
 using namespace std;
@@ -126,11 +125,16 @@ VINSRemoteInterface::VINSRemoteInterface(std::string rcVisardInetAddrs,
 VINSRemoteInterface::~VINSRemoteInterface()
 {
   destroyPoseReceiver();
+  if (_reqStreams.size() > 0)
+  {
+    cerr << "[VINSRemoteInterface] Could not stop all previously requested pose"
+            " streams on rc_visard. Please check device manually!" << endl;
+  }
 }
 
-void VINSRemoteInterface::start(bool flagRestart  ) {
+void VINSRemoteInterface::start(bool flagRestart) {
   // do put request on respective url (no parameters needed for this simple service call)
-  string serviceToCall = serviceToCall = (flagRestart) ? "restart" : "start";
+  string serviceToCall = (flagRestart) ? "restart" : "start";
   cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_stereo_ins/services/" + serviceToCall};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
@@ -175,33 +179,17 @@ list<string> VINSRemoteInterface::getActiveStreams() {
 bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
                                            unsigned int destPort)
 {
-  ROS_DEBUG("InitStream()");
-
   // if stream was initialized before, stop it
   destroyPoseReceiver();
-
-  // do some sanity checks and give user warnings if required
-  try {
-    auto activeStreams = getActiveStreams();
-    if (activeStreams.size() > 4)
-      ROS_WARN_STREAM("rc_visard currently already running " << activeStreams.size()
-           << " streams: " << toString(activeStreams) << "! Running too many streams might impair performance...");
-    if (getState() != State::RUNNING)
-      ROS_WARN_STREAM("rc_visard's VINS module is currently not running."
-                   << " You will not receive any poses unless you turn it on!");
-  } catch (std::exception &e) {
-    ROS_WARN_STREAM("Could not access current state of rc_visard: " << e.what());
-  }
 
   // figure out local inet address for streaming
   if (destAddrs == "")
   { // if no pose stream target inet address specified by user, try to figure out
     if (!getStreamTargetInetAddress(_visardAddrs, _visardSubnet, destAddrs))
     {
-      ROS_ERROR_STREAM(
-              "Did not find any network interface on this host which is "
+      cerr << "[VINSRemoteInterface] Did not find any network interface on this host which is "
                       << "reachable from rc_visard's network configuration "
-                      << _visardAddrs << "/" << _visardSubnet);
+                      << _visardAddrs << "/" << _visardSubnet << endl;
       return false;
     }
   }
@@ -209,10 +197,9 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   { // if address is specified, check if it is reachable from rc_visard
     if (!isIPInRange(destAddrs, _visardAddrs, _visardSubnet))
     {
-      ROS_ERROR_STREAM(
-              "Given inet address " << destAddrs << " on this host is not "
+      cerr << "[VINSRemoteInterface] Given inet address " << destAddrs << " on this host is not "
                                     << "reachable from rc_visard's network configuration "
-                                    << _visardAddrs << "/" << _visardSubnet);
+                                    << _visardAddrs << "/" << _visardSubnet << endl;
       return false;
     }
   }
@@ -221,7 +208,7 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   _sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (_sockfd < 0)
   {
-    ROS_ERROR_STREAM("Error creating socket: errno " << errno);
+    cerr << "[VINSRemoteInterface] Error creating socket: errno " << errno << endl;
     return false;
   }
 
@@ -233,8 +220,8 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   myaddr.sin_port = htons(destPort); // set user specified or any port number
   if (bind(_sockfd, (sockaddr * ) & myaddr, sizeof(sockaddr)) < 0)
   {
-    ROS_ERROR_STREAM("Error binding socket to port number "
-                             << destPort << ": errno " << errno);
+    cerr << "[VINSRemoteInterface] Error binding socket to port number "
+                             << destPort << ": errno " << errno << endl;
     return false;
   }
 
@@ -244,15 +231,12 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
     socklen_t len = sizeof(myaddr);
     if (getsockname(_sockfd, (struct sockaddr *) &myaddr, &len) < 0)
     {
-      ROS_ERROR_STREAM("Error getting socket name: errno " << errno);
+      cerr << "[VINSRemoteInterface] Error getting socket name: errno " << errno << endl;
       close(_sockfd);
       return false;
     }
     destPort = ntohs(myaddr.sin_port);
   }
-  ROS_INFO_STREAM("Input socket created and bound to addr "
-                          << inet_ntoa(myaddr.sin_addr) << ":"
-                          << ntohs(myaddr.sin_port));
 
   // do REST-API call requesting a UDP stream from rc_visard device to socket
   string destination = destAddrs + ":" + to_string(destPort);
@@ -261,18 +245,14 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
                       cpr::Timeout{_timeoutCurl});
   if (put.status_code != 200) // call failed
   {
-    ROS_ERROR_STREAM(
-            "Could not successfully request a pose stream from rc_visard: "
-                    << toString(put));
+    cerr << "[VINSRemoteInterface] Could not successfully request a pose stream from rc_visard: "
+                    << toString(put) << endl;
     close(_sockfd);
     return false;
   }
-  ROS_INFO_STREAM("Pose stream successfully requested on rc_visard: "
-                          << destination);
   _reqStreams.push_back(destination);
 
   // waiting for first message; we set long a timeout for receiving data
-  ROS_DEBUG_STREAM("Waiting for the first pose message to arrive...");
   struct timeval recvtimeout;
   recvtimeout.tv_sec = 5;
   recvtimeout.tv_usec = 0;
@@ -285,14 +265,14 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
     int e = errno;
     if (e == EAGAIN || e == EWOULDBLOCK)
     {
-        ROS_ERROR_STREAM("Did not receive any pose message within the last "
+      cerr << "[VINSRemoteInterface] Did not receive any pose message within the last "
                                  << recvtimeout.tv_sec*1000 + recvtimeout.tv_usec/1000 << " ms. "
                                  << "rc_visard does not seem to stream poses (is VINS running?) or you "
-                                 << "seem to have serious network/connection problems!");
+                                 << "seem to have serious network/connection problems!" << endl;
 
     } else
     {
-      ROS_ERROR_STREAM("Error during recvfrom() on socket: errno " << errno);
+      cerr << "[VINSRemoteInterface] Error during recvfrom() on socket: errno " << errno << endl;
     }
     close(_sockfd);
     cleanUpRequestedStreams();
@@ -302,7 +282,6 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   // stream established, prepare everything for normal pose receiving
   setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &_recvtimeout,
              sizeof(struct timeval));
-  ROS_INFO("Received first Pose message. Stream successfully established!");
   _streamInitialized = true;
   return true;
 }
@@ -310,14 +289,12 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
 void VINSRemoteInterface::cleanUpRequestedStreams()
 {
   // get a list of currently active streams on rc_visard device
-  ROS_DEBUG_STREAM("Starting cleaning up of previously requested streams: " << toString(_reqStreams));
   list<string> rcVisardsActivePoseStreams;
   try
   {
     rcVisardsActivePoseStreams = getActiveStreams();
-    ROS_INFO_STREAM("Found active streams on rc_visard: " << toString(rcVisardsActivePoseStreams));
   } catch (std::exception& e) {
-    ROS_WARN_STREAM("Could not get list of active streams for cleaning up previously requested streams: " << e.what());
+//    ROS_WARN_STREAM("Could not get list of active streams for cleaning up previously requested streams: " << e.what());
     return;
   }
 
@@ -325,17 +302,12 @@ void VINSRemoteInterface::cleanUpRequestedStreams()
   for (auto activeStream : rcVisardsActivePoseStreams) {
     auto found = find(_reqStreams.begin(), _reqStreams.end(), activeStream);
     if (found != _reqStreams.end()) {
-        ROS_INFO_STREAM("Deleting stream " << activeStream);
         cpr::Url url = cpr::Url{_baseUrl + "/datastreams/pose"};
         auto del = cpr::Delete(url,
                                cpr::Parameters{{"destination", activeStream}},
                                cpr::Timeout{_timeoutCurl});
         if (del.status_code == 200) { // success
           _reqStreams.erase(found);
-          ROS_INFO_STREAM("Cleaned up previously requested stream: " << activeStream);
-        } else {
-          ROS_WARN_STREAM("Could not stop previously requested pose stream "
-                                  << activeStream << ": " << toString(del));
         }
       }
   }
