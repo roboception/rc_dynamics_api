@@ -113,7 +113,7 @@ VINSRemoteInterface::VINSRemoteInterface(std::string rcVisardInetAddrs,
                              std::string rcVisardSubnet,
                              unsigned int requestsTimeout) :
         _visardAddrs(rcVisardInetAddrs), _visardSubnet(rcVisardSubnet),
-        _streamInitialized(false), _baseUrl("http://"+rcVisardInetAddrs+"/api/v1"),
+        _streamInitialized(false), _baseUrl("http://"+_visardAddrs+"/api/v1"),
         _timeoutCurl(requestsTimeout)
 {
   // may result in weird errors when not initialized properly
@@ -128,7 +128,14 @@ VINSRemoteInterface::~VINSRemoteInterface()
   if (_reqStreams.size() > 0)
   {
     cerr << "[VINSRemoteInterface] Could not stop all previously requested pose"
-            " streams on rc_visard. Please check device manually!" << endl;
+            " streams on rc_visard. Please check device manually"
+            " (" << _baseUrl << "/datastreams/pose)"
+            " for not containing any of the following legacy streams and"
+            " delete them otherwise, e.g. using the swagger UI ("
+         << "http://"+_visardAddrs+"/api/swagger/)"
+         << ": "
+         << toString(_reqStreams)
+         << endl;
   }
 }
 
