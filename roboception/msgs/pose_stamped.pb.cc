@@ -35,10 +35,9 @@ void protobuf_AssignDesc_roboception_2fmsgs_2fpose_5fstamped_2eproto() {
       "roboception/msgs/pose_stamped.proto");
   GOOGLE_CHECK(file != NULL);
   PoseStamped_descriptor_ = file->message_type(0);
-  static const int PoseStamped_offsets_[3] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PoseStamped, time_),
+  static const int PoseStamped_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PoseStamped, timestamp_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PoseStamped, pose_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(PoseStamped, covariance_),
   };
   PoseStamped_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -85,11 +84,11 @@ void protobuf_AddDesc_roboception_2fmsgs_2fpose_5fstamped_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n#roboception/msgs/pose_stamped.proto\022\020r"
     "oboception.msgs\032\033roboception/msgs/time.p"
-    "roto\032\033roboception/msgs/pose.proto\"q\n\013Pos"
-    "eStamped\022$\n\004time\030\001 \001(\0132\026.roboception.msg"
-    "s.Time\022$\n\004pose\030\002 \001(\0132\026.roboception.msgs."
-    "Pose\022\026\n\ncovariance\030\003 \003(\001B\002\020\001B)\n\024com.robo"
-    "ception.msgsB\021PoseStampedProtos", 271);
+    "roto\032\033roboception/msgs/pose.proto\"^\n\013Pos"
+    "eStamped\022)\n\ttimestamp\030\001 \001(\0132\026.roboceptio"
+    "n.msgs.Time\022$\n\004pose\030\002 \001(\0132\026.roboception."
+    "msgs.PoseB)\n\024com.roboception.msgsB\021PoseS"
+    "tampedProtos", 252);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "roboception/msgs/pose_stamped.proto", &protobuf_RegisterTypes);
   PoseStamped::default_instance_ = new PoseStamped();
@@ -107,9 +106,8 @@ struct StaticDescriptorInitializer_roboception_2fmsgs_2fpose_5fstamped_2eproto {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int PoseStamped::kTimeFieldNumber;
+const int PoseStamped::kTimestampFieldNumber;
 const int PoseStamped::kPoseFieldNumber;
-const int PoseStamped::kCovarianceFieldNumber;
 #endif  // !_MSC_VER
 
 PoseStamped::PoseStamped()
@@ -118,7 +116,7 @@ PoseStamped::PoseStamped()
 }
 
 void PoseStamped::InitAsDefaultInstance() {
-  time_ = const_cast< ::roboception::msgs::Time*>(&::roboception::msgs::Time::default_instance());
+  timestamp_ = const_cast< ::roboception::msgs::Time*>(&::roboception::msgs::Time::default_instance());
   pose_ = const_cast< ::roboception::msgs::Pose*>(&::roboception::msgs::Pose::default_instance());
 }
 
@@ -130,7 +128,7 @@ PoseStamped::PoseStamped(const PoseStamped& from)
 
 void PoseStamped::SharedCtor() {
   _cached_size_ = 0;
-  time_ = NULL;
+  timestamp_ = NULL;
   pose_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -141,7 +139,7 @@ PoseStamped::~PoseStamped() {
 
 void PoseStamped::SharedDtor() {
   if (this != default_instance_) {
-    delete time_;
+    delete timestamp_;
     delete pose_;
   }
 }
@@ -169,14 +167,13 @@ PoseStamped* PoseStamped::New() const {
 
 void PoseStamped::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (has_time()) {
-      if (time_ != NULL) time_->::roboception::msgs::Time::Clear();
+    if (has_timestamp()) {
+      if (timestamp_ != NULL) timestamp_->::roboception::msgs::Time::Clear();
     }
     if (has_pose()) {
       if (pose_ != NULL) pose_->::roboception::msgs::Pose::Clear();
     }
   }
-  covariance_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -187,12 +184,12 @@ bool PoseStamped::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional .roboception.msgs.Time time = 1;
+      // optional .roboception.msgs.Time timestamp = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_time()));
+               input, mutable_timestamp()));
         } else {
           goto handle_uninterpreted;
         }
@@ -207,27 +204,6 @@ bool PoseStamped::MergePartialFromCodedStream(
          parse_pose:
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
                input, mutable_pose()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(26)) goto parse_covariance;
-        break;
-      }
-
-      // repeated double covariance = 3 [packed = true];
-      case 3: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_covariance:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
-                   double, ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
-                 input, this->mutable_covariance())));
-        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
-                   == ::google::protobuf::internal::WireFormatLite::
-                      WIRETYPE_FIXED64) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
-                   double, ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
-                 1, 26, input, this->mutable_covariance())));
         } else {
           goto handle_uninterpreted;
         }
@@ -253,26 +229,16 @@ bool PoseStamped::MergePartialFromCodedStream(
 
 void PoseStamped::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // optional .roboception.msgs.Time time = 1;
-  if (has_time()) {
+  // optional .roboception.msgs.Time timestamp = 1;
+  if (has_timestamp()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      1, this->time(), output);
+      1, this->timestamp(), output);
   }
 
   // optional .roboception.msgs.Pose pose = 2;
   if (has_pose()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       2, this->pose(), output);
-  }
-
-  // repeated double covariance = 3 [packed = true];
-  if (this->covariance_size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteTag(3, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
-    output->WriteVarint32(_covariance_cached_byte_size_);
-  }
-  for (int i = 0; i < this->covariance_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteDoubleNoTag(
-      this->covariance(i), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -283,11 +249,11 @@ void PoseStamped::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* PoseStamped::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // optional .roboception.msgs.Time time = 1;
-  if (has_time()) {
+  // optional .roboception.msgs.Time timestamp = 1;
+  if (has_timestamp()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
-        1, this->time(), target);
+        1, this->timestamp(), target);
   }
 
   // optional .roboception.msgs.Pose pose = 2;
@@ -295,20 +261,6 @@ void PoseStamped::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         2, this->pose(), target);
-  }
-
-  // repeated double covariance = 3 [packed = true];
-  if (this->covariance_size() > 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
-      3,
-      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
-      target);
-    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
-      _covariance_cached_byte_size_, target);
-  }
-  for (int i = 0; i < this->covariance_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteDoubleNoTagToArray(this->covariance(i), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -322,11 +274,11 @@ int PoseStamped::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // optional .roboception.msgs.Time time = 1;
-    if (has_time()) {
+    // optional .roboception.msgs.Time timestamp = 1;
+    if (has_timestamp()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->time());
+          this->timestamp());
     }
 
     // optional .roboception.msgs.Pose pose = 2;
@@ -337,20 +289,6 @@ int PoseStamped::ByteSize() const {
     }
 
   }
-  // repeated double covariance = 3 [packed = true];
-  {
-    int data_size = 0;
-    data_size = 8 * this->covariance_size();
-    if (data_size > 0) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
-    }
-    GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-    _covariance_cached_byte_size_ = data_size;
-    GOOGLE_SAFE_CONCURRENT_WRITES_END();
-    total_size += data_size;
-  }
-
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -376,10 +314,9 @@ void PoseStamped::MergeFrom(const ::google::protobuf::Message& from) {
 
 void PoseStamped::MergeFrom(const PoseStamped& from) {
   GOOGLE_CHECK_NE(&from, this);
-  covariance_.MergeFrom(from.covariance_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_time()) {
-      mutable_time()->::roboception::msgs::Time::MergeFrom(from.time());
+    if (from.has_timestamp()) {
+      mutable_timestamp()->::roboception::msgs::Time::MergeFrom(from.timestamp());
     }
     if (from.has_pose()) {
       mutable_pose()->::roboception::msgs::Pose::MergeFrom(from.pose());
@@ -407,9 +344,8 @@ bool PoseStamped::IsInitialized() const {
 
 void PoseStamped::Swap(PoseStamped* other) {
   if (other != this) {
-    std::swap(time_, other->time_);
+    std::swap(timestamp_, other->timestamp_);
     std::swap(pose_, other->pose_);
-    covariance_.Swap(&other->covariance_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

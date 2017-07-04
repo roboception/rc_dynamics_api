@@ -94,49 +94,38 @@ class Pose : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // optional string name = 1;
-  inline bool has_name() const;
-  inline void clear_name();
-  static const int kNameFieldNumber = 1;
-  inline const ::std::string& name() const;
-  inline void set_name(const ::std::string& value);
-  inline void set_name(const char* value);
-  inline void set_name(const char* value, size_t size);
-  inline ::std::string* mutable_name();
-  inline ::std::string* release_name();
-  inline void set_allocated_name(::std::string* name);
-
-  // optional uint32 id = 2;
-  inline bool has_id() const;
-  inline void clear_id();
-  static const int kIdFieldNumber = 2;
-  inline ::google::protobuf::uint32 id() const;
-  inline void set_id(::google::protobuf::uint32 value);
-
-  // optional .roboception.msgs.Vector3d position = 3;
+  // optional .roboception.msgs.Vector3d position = 1;
   inline bool has_position() const;
   inline void clear_position();
-  static const int kPositionFieldNumber = 3;
+  static const int kPositionFieldNumber = 1;
   inline const ::roboception::msgs::Vector3d& position() const;
   inline ::roboception::msgs::Vector3d* mutable_position();
   inline ::roboception::msgs::Vector3d* release_position();
   inline void set_allocated_position(::roboception::msgs::Vector3d* position);
 
-  // optional .roboception.msgs.Quaternion orientation = 4;
+  // optional .roboception.msgs.Quaternion orientation = 2;
   inline bool has_orientation() const;
   inline void clear_orientation();
-  static const int kOrientationFieldNumber = 4;
+  static const int kOrientationFieldNumber = 2;
   inline const ::roboception::msgs::Quaternion& orientation() const;
   inline ::roboception::msgs::Quaternion* mutable_orientation();
   inline ::roboception::msgs::Quaternion* release_orientation();
   inline void set_allocated_orientation(::roboception::msgs::Quaternion* orientation);
 
+  // repeated double covariance = 3 [packed = true];
+  inline int covariance_size() const;
+  inline void clear_covariance();
+  static const int kCovarianceFieldNumber = 3;
+  inline double covariance(int index) const;
+  inline void set_covariance(int index, double value);
+  inline void add_covariance(double value);
+  inline const ::google::protobuf::RepeatedField< double >&
+      covariance() const;
+  inline ::google::protobuf::RepeatedField< double >*
+      mutable_covariance();
+
   // @@protoc_insertion_point(class_scope:roboception.msgs.Pose)
  private:
-  inline void set_has_name();
-  inline void clear_has_name();
-  inline void set_has_id();
-  inline void clear_has_id();
   inline void set_has_position();
   inline void clear_has_position();
   inline void set_has_orientation();
@@ -144,13 +133,13 @@ class Pose : public ::google::protobuf::Message {
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::std::string* name_;
   ::roboception::msgs::Vector3d* position_;
   ::roboception::msgs::Quaternion* orientation_;
-  ::google::protobuf::uint32 id_;
+  ::google::protobuf::RepeatedField< double > covariance_;
+  mutable int _covariance_cached_byte_size_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   friend void  protobuf_AddDesc_roboception_2fmsgs_2fpose_2eproto();
   friend void protobuf_AssignDesc_roboception_2fmsgs_2fpose_2eproto();
@@ -166,107 +155,15 @@ class Pose : public ::google::protobuf::Message {
 
 // Pose
 
-// optional string name = 1;
-inline bool Pose::has_name() const {
+// optional .roboception.msgs.Vector3d position = 1;
+inline bool Pose::has_position() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void Pose::set_has_name() {
+inline void Pose::set_has_position() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void Pose::clear_has_name() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline void Pose::clear_name() {
-  if (name_ != &::google::protobuf::internal::kEmptyString) {
-    name_->clear();
-  }
-  clear_has_name();
-}
-inline const ::std::string& Pose::name() const {
-  return *name_;
-}
-inline void Pose::set_name(const ::std::string& value) {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  name_->assign(value);
-}
-inline void Pose::set_name(const char* value) {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  name_->assign(value);
-}
-inline void Pose::set_name(const char* value, size_t size) {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  name_->assign(reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* Pose::mutable_name() {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  return name_;
-}
-inline ::std::string* Pose::release_name() {
-  clear_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    return NULL;
-  } else {
-    ::std::string* temp = name_;
-    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-    return temp;
-  }
-}
-inline void Pose::set_allocated_name(::std::string* name) {
-  if (name_ != &::google::protobuf::internal::kEmptyString) {
-    delete name_;
-  }
-  if (name) {
-    set_has_name();
-    name_ = name;
-  } else {
-    clear_has_name();
-    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  }
-}
-
-// optional uint32 id = 2;
-inline bool Pose::has_id() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void Pose::set_has_id() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void Pose::clear_has_id() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void Pose::clear_id() {
-  id_ = 0u;
-  clear_has_id();
-}
-inline ::google::protobuf::uint32 Pose::id() const {
-  return id_;
-}
-inline void Pose::set_id(::google::protobuf::uint32 value) {
-  set_has_id();
-  id_ = value;
-}
-
-// optional .roboception.msgs.Vector3d position = 3;
-inline bool Pose::has_position() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-inline void Pose::set_has_position() {
-  _has_bits_[0] |= 0x00000004u;
-}
 inline void Pose::clear_has_position() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000001u;
 }
 inline void Pose::clear_position() {
   if (position_ != NULL) position_->::roboception::msgs::Vector3d::Clear();
@@ -296,15 +193,15 @@ inline void Pose::set_allocated_position(::roboception::msgs::Vector3d* position
   }
 }
 
-// optional .roboception.msgs.Quaternion orientation = 4;
+// optional .roboception.msgs.Quaternion orientation = 2;
 inline bool Pose::has_orientation() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000002u) != 0;
 }
 inline void Pose::set_has_orientation() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000002u;
 }
 inline void Pose::clear_has_orientation() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void Pose::clear_orientation() {
   if (orientation_ != NULL) orientation_->::roboception::msgs::Quaternion::Clear();
@@ -332,6 +229,31 @@ inline void Pose::set_allocated_orientation(::roboception::msgs::Quaternion* ori
   } else {
     clear_has_orientation();
   }
+}
+
+// repeated double covariance = 3 [packed = true];
+inline int Pose::covariance_size() const {
+  return covariance_.size();
+}
+inline void Pose::clear_covariance() {
+  covariance_.Clear();
+}
+inline double Pose::covariance(int index) const {
+  return covariance_.Get(index);
+}
+inline void Pose::set_covariance(int index, double value) {
+  covariance_.Set(index, value);
+}
+inline void Pose::add_covariance(double value) {
+  covariance_.Add(value);
+}
+inline const ::google::protobuf::RepeatedField< double >&
+Pose::covariance() const {
+  return covariance_;
+}
+inline ::google::protobuf::RepeatedField< double >*
+Pose::mutable_covariance() {
+  return &covariance_;
 }
 
 

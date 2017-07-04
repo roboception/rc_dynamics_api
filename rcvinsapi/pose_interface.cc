@@ -261,7 +261,7 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
 
   // waiting for first message; we set long a timeout for receiving data
   struct timeval recvtimeout;
-  recvtimeout.tv_sec = 5;
+  recvtimeout.tv_sec = 20;
   recvtimeout.tv_usec = 0;
   setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &recvtimeout,
              sizeof(struct timeval));

@@ -19,7 +19,7 @@
 
 #include <netinet/in.h>
 
-#include "roboception/msgs/pose_stamped.pb.h"
+#include "roboception/msgs/frame.pb.h"
 
 namespace rc
 {
@@ -32,7 +32,7 @@ class VINSRemoteInterface {
     /**
      * PoseType
      */
-    using PoseType = roboception::msgs::PoseStamped;
+    using PoseType = roboception::msgs::Frame;
 
     enum State {
       RUNNING,

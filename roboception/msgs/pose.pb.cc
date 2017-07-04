@@ -35,11 +35,10 @@ void protobuf_AssignDesc_roboception_2fmsgs_2fpose_2eproto() {
       "roboception/msgs/pose.proto");
   GOOGLE_CHECK(file != NULL);
   Pose_descriptor_ = file->message_type(0);
-  static const int Pose_offsets_[4] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Pose, name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Pose, id_),
+  static const int Pose_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Pose, position_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Pose, orientation_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Pose, covariance_),
   };
   Pose_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -86,12 +85,11 @@ void protobuf_AddDesc_roboception_2fmsgs_2fpose_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\033roboception/msgs/pose.proto\022\020robocepti"
     "on.msgs\032\037roboception/msgs/vector3d.proto"
-    "\032!roboception/msgs/quaternion.proto\"\201\001\n\004"
-    "Pose\022\014\n\004name\030\001 \001(\t\022\n\n\002id\030\002 \001(\r\022,\n\010positi"
-    "on\030\003 \001(\0132\032.roboception.msgs.Vector3d\0221\n\013"
-    "orientation\030\004 \001(\0132\034.roboception.msgs.Qua"
-    "ternionB\"\n\024com.roboception.msgsB\nPosePro"
-    "tos", 283);
+    "\032!roboception/msgs/quaternion.proto\"\177\n\004P"
+    "ose\022,\n\010position\030\001 \001(\0132\032.roboception.msgs"
+    ".Vector3d\0221\n\013orientation\030\002 \001(\0132\034.robocep"
+    "tion.msgs.Quaternion\022\026\n\ncovariance\030\003 \003(\001"
+    "B\002\020\001B\"\n\024com.roboception.msgsB\nPoseProtos", 280);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "roboception/msgs/pose.proto", &protobuf_RegisterTypes);
   Pose::default_instance_ = new Pose();
@@ -109,10 +107,9 @@ struct StaticDescriptorInitializer_roboception_2fmsgs_2fpose_2eproto {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int Pose::kNameFieldNumber;
-const int Pose::kIdFieldNumber;
 const int Pose::kPositionFieldNumber;
 const int Pose::kOrientationFieldNumber;
+const int Pose::kCovarianceFieldNumber;
 #endif  // !_MSC_VER
 
 Pose::Pose()
@@ -133,8 +130,6 @@ Pose::Pose(const Pose& from)
 
 void Pose::SharedCtor() {
   _cached_size_ = 0;
-  name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  id_ = 0u;
   position_ = NULL;
   orientation_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -145,9 +140,6 @@ Pose::~Pose() {
 }
 
 void Pose::SharedDtor() {
-  if (name_ != &::google::protobuf::internal::kEmptyString) {
-    delete name_;
-  }
   if (this != default_instance_) {
     delete position_;
     delete orientation_;
@@ -177,12 +169,6 @@ Pose* Pose::New() const {
 
 void Pose::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (has_name()) {
-      if (name_ != &::google::protobuf::internal::kEmptyString) {
-        name_->clear();
-      }
-    }
-    id_ = 0u;
     if (has_position()) {
       if (position_ != NULL) position_->::roboception::msgs::Vector3d::Clear();
     }
@@ -190,6 +176,7 @@ void Pose::Clear() {
       if (orientation_ != NULL) orientation_->::roboception::msgs::Quaternion::Clear();
     }
   }
+  covariance_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -200,59 +187,47 @@ bool Pose::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string name = 1;
+      // optional .roboception.msgs.Vector3d position = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_name()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->name().data(), this->name().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(16)) goto parse_id;
-        break;
-      }
-
-      // optional uint32 id = 2;
-      case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_id:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, &id_)));
-          set_has_id();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(26)) goto parse_position;
-        break;
-      }
-
-      // optional .roboception.msgs.Vector3d position = 3;
-      case 3: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_position:
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
                input, mutable_position()));
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(34)) goto parse_orientation;
+        if (input->ExpectTag(18)) goto parse_orientation;
         break;
       }
 
-      // optional .roboception.msgs.Quaternion orientation = 4;
-      case 4: {
+      // optional .roboception.msgs.Quaternion orientation = 2;
+      case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
          parse_orientation:
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
                input, mutable_orientation()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_covariance;
+        break;
+      }
+
+      // repeated double covariance = 3 [packed = true];
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_covariance:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitive<
+                   double, ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
+                 input, this->mutable_covariance())));
+        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
+                   == ::google::protobuf::internal::WireFormatLite::
+                      WIRETYPE_FIXED64) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitiveNoInline<
+                   double, ::google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
+                 1, 26, input, this->mutable_covariance())));
         } else {
           goto handle_uninterpreted;
         }
@@ -278,30 +253,26 @@ bool Pose::MergePartialFromCodedStream(
 
 void Pose::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // optional string name = 1;
-  if (has_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->name().data(), this->name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
-      1, this->name(), output);
-  }
-
-  // optional uint32 id = 2;
-  if (has_id()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->id(), output);
-  }
-
-  // optional .roboception.msgs.Vector3d position = 3;
+  // optional .roboception.msgs.Vector3d position = 1;
   if (has_position()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      3, this->position(), output);
+      1, this->position(), output);
   }
 
-  // optional .roboception.msgs.Quaternion orientation = 4;
+  // optional .roboception.msgs.Quaternion orientation = 2;
   if (has_orientation()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->orientation(), output);
+      2, this->orientation(), output);
+  }
+
+  // repeated double covariance = 3 [packed = true];
+  if (this->covariance_size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteTag(3, ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED, output);
+    output->WriteVarint32(_covariance_cached_byte_size_);
+  }
+  for (int i = 0; i < this->covariance_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteDoubleNoTag(
+      this->covariance(i), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -312,33 +283,32 @@ void Pose::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Pose::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // optional string name = 1;
-  if (has_name()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->name().data(), this->name().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->name(), target);
-  }
-
-  // optional uint32 id = 2;
-  if (has_id()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(2, this->id(), target);
-  }
-
-  // optional .roboception.msgs.Vector3d position = 3;
+  // optional .roboception.msgs.Vector3d position = 1;
   if (has_position()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
-        3, this->position(), target);
+        1, this->position(), target);
   }
 
-  // optional .roboception.msgs.Quaternion orientation = 4;
+  // optional .roboception.msgs.Quaternion orientation = 2;
   if (has_orientation()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
-        4, this->orientation(), target);
+        2, this->orientation(), target);
+  }
+
+  // repeated double covariance = 3 [packed = true];
+  if (this->covariance_size() > 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteTagToArray(
+      3,
+      ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED,
+      target);
+    target = ::google::protobuf::io::CodedOutputStream::WriteVarint32ToArray(
+      _covariance_cached_byte_size_, target);
+  }
+  for (int i = 0; i < this->covariance_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteDoubleNoTagToArray(this->covariance(i), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -352,28 +322,14 @@ int Pose::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // optional string name = 1;
-    if (has_name()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->name());
-    }
-
-    // optional uint32 id = 2;
-    if (has_id()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->id());
-    }
-
-    // optional .roboception.msgs.Vector3d position = 3;
+    // optional .roboception.msgs.Vector3d position = 1;
     if (has_position()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->position());
     }
 
-    // optional .roboception.msgs.Quaternion orientation = 4;
+    // optional .roboception.msgs.Quaternion orientation = 2;
     if (has_orientation()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -381,6 +337,20 @@ int Pose::ByteSize() const {
     }
 
   }
+  // repeated double covariance = 3 [packed = true];
+  {
+    int data_size = 0;
+    data_size = 8 * this->covariance_size();
+    if (data_size > 0) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(data_size);
+    }
+    GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+    _covariance_cached_byte_size_ = data_size;
+    GOOGLE_SAFE_CONCURRENT_WRITES_END();
+    total_size += data_size;
+  }
+
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -406,13 +376,8 @@ void Pose::MergeFrom(const ::google::protobuf::Message& from) {
 
 void Pose::MergeFrom(const Pose& from) {
   GOOGLE_CHECK_NE(&from, this);
+  covariance_.MergeFrom(from.covariance_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_name()) {
-      set_name(from.name());
-    }
-    if (from.has_id()) {
-      set_id(from.id());
-    }
     if (from.has_position()) {
       mutable_position()->::roboception::msgs::Vector3d::MergeFrom(from.position());
     }
@@ -442,10 +407,9 @@ bool Pose::IsInitialized() const {
 
 void Pose::Swap(Pose* other) {
   if (other != this) {
-    std::swap(name_, other->name_);
-    std::swap(id_, other->id_);
     std::swap(position_, other->position_);
     std::swap(orientation_, other->orientation_);
+    covariance_.Swap(&other->covariance_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

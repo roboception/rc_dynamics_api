@@ -94,14 +94,14 @@ class PoseStamped : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // optional .roboception.msgs.Time time = 1;
-  inline bool has_time() const;
-  inline void clear_time();
-  static const int kTimeFieldNumber = 1;
-  inline const ::roboception::msgs::Time& time() const;
-  inline ::roboception::msgs::Time* mutable_time();
-  inline ::roboception::msgs::Time* release_time();
-  inline void set_allocated_time(::roboception::msgs::Time* time);
+  // optional .roboception.msgs.Time timestamp = 1;
+  inline bool has_timestamp() const;
+  inline void clear_timestamp();
+  static const int kTimestampFieldNumber = 1;
+  inline const ::roboception::msgs::Time& timestamp() const;
+  inline ::roboception::msgs::Time* mutable_timestamp();
+  inline ::roboception::msgs::Time* release_timestamp();
+  inline void set_allocated_timestamp(::roboception::msgs::Time* timestamp);
 
   // optional .roboception.msgs.Pose pose = 2;
   inline bool has_pose() const;
@@ -112,34 +112,20 @@ class PoseStamped : public ::google::protobuf::Message {
   inline ::roboception::msgs::Pose* release_pose();
   inline void set_allocated_pose(::roboception::msgs::Pose* pose);
 
-  // repeated double covariance = 3 [packed = true];
-  inline int covariance_size() const;
-  inline void clear_covariance();
-  static const int kCovarianceFieldNumber = 3;
-  inline double covariance(int index) const;
-  inline void set_covariance(int index, double value);
-  inline void add_covariance(double value);
-  inline const ::google::protobuf::RepeatedField< double >&
-      covariance() const;
-  inline ::google::protobuf::RepeatedField< double >*
-      mutable_covariance();
-
   // @@protoc_insertion_point(class_scope:roboception.msgs.PoseStamped)
  private:
-  inline void set_has_time();
-  inline void clear_has_time();
+  inline void set_has_timestamp();
+  inline void clear_has_timestamp();
   inline void set_has_pose();
   inline void clear_has_pose();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::roboception::msgs::Time* time_;
+  ::roboception::msgs::Time* timestamp_;
   ::roboception::msgs::Pose* pose_;
-  ::google::protobuf::RepeatedField< double > covariance_;
-  mutable int _covariance_cached_byte_size_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
 
   friend void  protobuf_AddDesc_roboception_2fmsgs_2fpose_5fstamped_2eproto();
   friend void protobuf_AssignDesc_roboception_2fmsgs_2fpose_5fstamped_2eproto();
@@ -155,41 +141,41 @@ class PoseStamped : public ::google::protobuf::Message {
 
 // PoseStamped
 
-// optional .roboception.msgs.Time time = 1;
-inline bool PoseStamped::has_time() const {
+// optional .roboception.msgs.Time timestamp = 1;
+inline bool PoseStamped::has_timestamp() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void PoseStamped::set_has_time() {
+inline void PoseStamped::set_has_timestamp() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void PoseStamped::clear_has_time() {
+inline void PoseStamped::clear_has_timestamp() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void PoseStamped::clear_time() {
-  if (time_ != NULL) time_->::roboception::msgs::Time::Clear();
-  clear_has_time();
+inline void PoseStamped::clear_timestamp() {
+  if (timestamp_ != NULL) timestamp_->::roboception::msgs::Time::Clear();
+  clear_has_timestamp();
 }
-inline const ::roboception::msgs::Time& PoseStamped::time() const {
-  return time_ != NULL ? *time_ : *default_instance_->time_;
+inline const ::roboception::msgs::Time& PoseStamped::timestamp() const {
+  return timestamp_ != NULL ? *timestamp_ : *default_instance_->timestamp_;
 }
-inline ::roboception::msgs::Time* PoseStamped::mutable_time() {
-  set_has_time();
-  if (time_ == NULL) time_ = new ::roboception::msgs::Time;
-  return time_;
+inline ::roboception::msgs::Time* PoseStamped::mutable_timestamp() {
+  set_has_timestamp();
+  if (timestamp_ == NULL) timestamp_ = new ::roboception::msgs::Time;
+  return timestamp_;
 }
-inline ::roboception::msgs::Time* PoseStamped::release_time() {
-  clear_has_time();
-  ::roboception::msgs::Time* temp = time_;
-  time_ = NULL;
+inline ::roboception::msgs::Time* PoseStamped::release_timestamp() {
+  clear_has_timestamp();
+  ::roboception::msgs::Time* temp = timestamp_;
+  timestamp_ = NULL;
   return temp;
 }
-inline void PoseStamped::set_allocated_time(::roboception::msgs::Time* time) {
-  delete time_;
-  time_ = time;
-  if (time) {
-    set_has_time();
+inline void PoseStamped::set_allocated_timestamp(::roboception::msgs::Time* timestamp) {
+  delete timestamp_;
+  timestamp_ = timestamp;
+  if (timestamp) {
+    set_has_timestamp();
   } else {
-    clear_has_time();
+    clear_has_timestamp();
   }
 }
 
@@ -229,31 +215,6 @@ inline void PoseStamped::set_allocated_pose(::roboception::msgs::Pose* pose) {
   } else {
     clear_has_pose();
   }
-}
-
-// repeated double covariance = 3 [packed = true];
-inline int PoseStamped::covariance_size() const {
-  return covariance_.size();
-}
-inline void PoseStamped::clear_covariance() {
-  covariance_.Clear();
-}
-inline double PoseStamped::covariance(int index) const {
-  return covariance_.Get(index);
-}
-inline void PoseStamped::set_covariance(int index, double value) {
-  covariance_.Set(index, value);
-}
-inline void PoseStamped::add_covariance(double value) {
-  covariance_.Add(value);
-}
-inline const ::google::protobuf::RepeatedField< double >&
-PoseStamped::covariance() const {
-  return covariance_;
-}
-inline ::google::protobuf::RepeatedField< double >*
-PoseStamped::mutable_covariance() {
-  return &covariance_;
 }
 
 
