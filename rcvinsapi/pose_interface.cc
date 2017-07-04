@@ -265,8 +265,8 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   recvtimeout.tv_usec = 0;
   setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &recvtimeout,
              sizeof(struct timeval));
-  int msg_size = recvfrom(_sockfd,_buffer,sizeof(_buffer),0,
-                          (struct sockaddr *)&_otheraddr,&_otheraddrLength); // receive msg; blocking call (timeout)
+  int msg_size = TEMP_FAILURE_RETRY(recvfrom(_sockfd,_buffer,sizeof(_buffer),0,
+                          (struct sockaddr *)&_otheraddr,&_otheraddrLength)); // receive msg; blocking call (timeout)
   if(msg_size<0) // error handling for not having received any message
   {
     int e = errno;
@@ -346,8 +346,8 @@ std::shared_ptr<VINSRemoteInterface::PoseType> VINSRemoteInterface::receivePose(
   }
 
   // receive msg from socket; blocking call (timeout)
-  int msg_size = recvfrom(_sockfd,_buffer,sizeof(_buffer),0,
-                          (struct sockaddr *)&_otheraddr,&_otheraddrLength);
+  int msg_size = TEMP_FAILURE_RETRY(recvfrom(_sockfd,_buffer,sizeof(_buffer),0,
+                          (struct sockaddr *)&_otheraddr,&_otheraddrLength));
   if (msg_size < 0)
   {
     int e = errno;
