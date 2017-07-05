@@ -17,6 +17,7 @@ set(protosrc
     ../roboception/msgs/quaternion.pb.cc
     ../roboception/msgs/time.pb.cc
     ../roboception/msgs/vector3d.pb.cc
+    ../roboception/msgs/frame.pb.cc
 )
 
 set(protohh
@@ -25,6 +26,7 @@ set(protohh
     ../roboception/msgs/quaternion.pb.h
     ../roboception/msgs/time.pb.h
     ../roboception/msgs/vector3d.pb.h
+    ../roboception/msgs/frame.pb.h
 )
 
 set(src
