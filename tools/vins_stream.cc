@@ -10,14 +10,12 @@
 */
 
 #include <rcvinsapi/pose_interface.h>
-#include <rcgcapi/device.h>
-#include <rcgcapi/config.h>
 
 #include <fstream>
 #include <getopt.h>
 #include <signal.h>
 #include <chrono>
-
+#include <iostream>
 
 using namespace std;
 
@@ -34,11 +32,11 @@ void signal_callback_handler(int signum)
 
 void printUsage(char *arg)
 {
-  cout << "Requests a pose stream from the specified rc_visard device and "
+  cout << "Requests a pose stream from the specified rc_visard IP and "
           "prints received poses (or records them as csv-file, see -o option)."
        << "\nUsage: "
        << arg
-       << " -d deviceId [-m maxNumPoses][-s maxRecTimeSecs][-o outputFile]"
+       << " -i IP [-m maxNumPoses][-s maxRecTimeSecs][-o outputFile]"
        << endl;
 }
 
@@ -88,21 +86,22 @@ int main(int argc, char *argv[])
 
 
   /**
-   * Parse program options (e.g. device_id )
+   * Parse program options (e.g. IP )
    */
-  string deviceId, outputFileName;
+  string outputFileName;
   unsigned int maxNumRecordingPoses = 50, maxRecordingTimeSecs = 5;
-  bool userSetDeviceId = false;
   bool userSetOutputFile = false;
   bool userSetMaxPoses = false;
   bool userSetRecordingTime = false;
+  bool userSetIp = false;
+  string ip_str;
 
   int opt;
   while ((opt = getopt(argc, argv, "hm:d:o:s:")) != -1) {
     switch (opt) {
-      case 'd':
-        deviceId = string(optarg);
-        userSetDeviceId = true;
+      case 'i':
+        ip_str = string(optarg);
+        userSetIp = true;
         break;
       case 'm':
         maxNumRecordingPoses = (unsigned int) max(0, atoi(optarg));
@@ -125,9 +124,9 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (!userSetDeviceId)
+  if (!userSetIp)
   {
-    cerr << "Please specify device id." << endl;
+    cerr << "Please specify device IP." << endl;
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
@@ -155,30 +154,9 @@ int main(int argc, char *argv[])
 
 
   /**
-   * open genicam device in order to extract network configuration
-   */
-  shared_ptr<rcg::Device> dev=rcg::getDevice(deviceId.c_str());
-  if (!dev)
-  {
-    cerr << "Device '" << deviceId << "' not found!" << endl;
-    rcg::System::clearSystems();
-    return EXIT_FAILURE;
-  }
-  dev->open(rcg::Device::ACCESS::READONLY);
-
-  shared_ptr<GenApi::CNodeMapRef> nodemap = dev->getRemoteNodeMap();
-  string addr = rcg::getString(nodemap, "GevCurrentIPAddress");
-  string subnet = rcg::getString(nodemap, "GevCurrentSubnetMask");
-  cout << "Connected to '" << deviceId << "' with network config " << addr
-       << " (" << subnet << ")" << endl;
-
-  dev->close(); // from here on, we dont need genicam device anymore
-
-
-  /**
    * Instantiate VINSRemoteInterface and start listening to pose stream
    */
-  rc::VINSRemoteInterface vins(addr, subnet);
+  rc::VINSRemoteInterface vins(ip_str, "255.255.255.0");
   unsigned int cntPoses=0;
   try
   {
@@ -251,8 +229,6 @@ int main(int argc, char *argv[])
   } else {
     cout << "Received  " << cntPoses << " poses." << endl;
   }
-
-  rcg::System::clearSystems();
 
   return EXIT_SUCCESS;
 }
