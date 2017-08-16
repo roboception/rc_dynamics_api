@@ -1,7 +1,12 @@
 
 # enable git submodules ('recursive' since our submodules include submodules themselves)
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
+
+#############
+# Currently not working (see below)
+#
+#variables:
+#  GIT_SUBMODULE_STRATEGY: recursive
+#############
 
 before_script:
   - export DISTRO_CODENAME=`lsb_release -cs` && echo Using distro $DISTRO_CODENAME
@@ -9,6 +14,16 @@ before_script:
   - if [ "$TESTING_DEBS" = "true" ]; then echo "deb http://apt.roboception.de/testing $DISTRO_CODENAME main" > /etc/apt/sources.list.d/roboception-testing.list ; fi
   - curl http://apt.roboception.de/archive.key | apt-key add -
   - apt-get update -yq && apt-get install -y lintian libprotobuf-dev protobuf-compiler # append packages required for your build here, e.g. cvkit
+
+  ##############
+  # TODO: Replace this by new version above!
+  # Actually this is outdated version of treating git submodules.
+  # However, according to https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/2148
+  # this is currently not working (giving "SSL certificate problem") but should
+  # be fixed with next gitlab version.
+  - git submodule sync --recursive
+  - git submodule update --init --recursive
+  ##############
 
 
 #############
