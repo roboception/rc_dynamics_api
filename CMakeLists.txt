@@ -32,6 +32,7 @@ add_definitions(-std=c++11)
 # - Build individual parts -
 
 add_subdirectory(rcvinsapi)
+add_subdirectory(tools)
 
 # export project targets
 
