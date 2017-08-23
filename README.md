@@ -27,7 +27,8 @@ definition files and the `libprotobuf` C++ library.
 
 ## Build/Installation
 
-Some libraries listed above are included as git submodules in this repository. 
+Some libraries listed above are included as git submodules in this repository 
+(and themselves include other libs as git submodules). 
 Hence, before building this lib you need to
     
     git submodule update --init --recursive

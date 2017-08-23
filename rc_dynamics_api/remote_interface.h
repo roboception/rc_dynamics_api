@@ -10,8 +10,8 @@
 */
 
 
-#ifndef RC_DEVICE_POSE_INTERFACE_H
-#define RC_DEVICE_POSE_INTERFACE_H
+#ifndef RC_DYNAMICS_API_REMOTEINTERFACE_H
+#define RC_DYNAMICS_API_REMOTEINTERFACE_H
 
 #include <string>
 #include <list>
@@ -23,10 +23,13 @@
 
 namespace rc
 {
+namespace dynamics
+{
 /**
  * Simple remote interface to access the VINS functionalities on the rc_visard.
  */
-class VINSRemoteInterface {
+class RemoteInterface
+{
   public:
 
     /**
@@ -34,7 +37,8 @@ class VINSRemoteInterface {
      */
     using PoseType = roboception::msgs::Frame;
 
-    enum State {
+    enum State
+    {
       RUNNING,
       STOPPED
     };
@@ -46,8 +50,10 @@ class VINSRemoteInterface {
      * @param rcVisardSubnet rc_visard's subnet mask as string, e.g "255.255.255.0"
      * @param requestsTimeout timeout in [ms] for doing REST-API calls
      */
-    VINSRemoteInterface(std::string rcVisardInetAddrs, std::string rcVisardSubnet, unsigned int requestsTimeout = 5000);
-    ~VINSRemoteInterface();
+    RemoteInterface(std::string rcVisardInetAddrs, std::string rcVisardSubnet,
+                    unsigned int requestsTimeout = 5000);
+
+    ~RemoteInterface();
 
     /**
      * Sets VINS module to running state
@@ -94,7 +100,8 @@ class VINSRemoteInterface {
      * @param destPort 0 or this hosts port number
      * @return true, if stream could be initialized successfully
      */
-    bool initPoseReceiver(std::string destAdrrs = "", unsigned int destPort = 0);
+    bool
+    initPoseReceiver(std::string destAdrrs = "", unsigned int destPort = 0);
 
     /**
      * Antagonist method to initPoseReceiver(), i.e. stops background processes
@@ -144,6 +151,7 @@ class VINSRemoteInterface {
 };
 
 }
+}
 
 
-#endif //RC_DEVICE_POSE_INTERFACE_H
+#endif //RC_DYNAMICS_API_REMOTEINTERFACE_H

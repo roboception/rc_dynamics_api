@@ -10,7 +10,7 @@
 */
 
 
-#include "pose_interface.h"
+#include "remote_interface.h"
 
 #include "net_utils.h"
 
@@ -31,7 +31,10 @@
 using namespace std;
 using json = nlohmann::json;
 
-namespace rc{
+namespace rc
+{
+namespace dynamics
+{
 
 string toString(cpr::Response resp)
 {
@@ -47,9 +50,11 @@ string toString(list<string> list)
 {
   stringstream s;
   s << "[";
-  for (auto it=list.begin(); it!=list.end();) {
+  for (auto it = list.begin(); it != list.end();)
+  {
     s << *it;
-    if (++it !=list.end()){
+    if (++it != list.end())
+    {
       s << ", ";
     }
   }
@@ -57,7 +62,8 @@ string toString(list<string> list)
   return s.str();
 }
 
-void handleCPRResponse(cpr::Response r) {
+void handleCPRResponse(cpr::Response r)
+{
   if (r.status_code != 200)
   {
     throw std::runtime_error(toString(r));
@@ -73,13 +79,14 @@ void handleCPRResponse(cpr::Response r) {
  * @param targetInetAddress inet address reachable from rc_visard (only valid if returned true)
  * @return true if reachable inet address is found among network interfaces
  */
-bool getStreamTargetInetAddress(string visardAddrsStr, string visardSubnetStr, string& targetInetAddress)
+bool getStreamTargetInetAddress(string visardAddrsStr, string visardSubnetStr,
+                                string &targetInetAddress)
 {
   // figure out own network addresses which are reachable from sensor
   // taken from http://stackoverflow.com/questions/212528/get-the-ip-address-of-the-machine
-  struct ifaddrs * ifAddrStruct=NULL;
-  struct ifaddrs * ifa=NULL;
-  void * tmpAddrPtr=NULL;
+  struct ifaddrs *ifAddrStruct = NULL;
+  struct ifaddrs *ifa = NULL;
+  void *tmpAddrPtr = NULL;
   getifaddrs(&ifAddrStruct);
   bool foundValid = false;
   char addressBuffer[INET_ADDRSTRLEN];
@@ -89,7 +96,7 @@ bool getStreamTargetInetAddress(string visardAddrsStr, string visardSubnetStr, s
       continue;
     if (ifa->ifa_addr->sa_family == AF_INET)
     { // check it is IP4 address
-      tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+      tmpAddrPtr = &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
       inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
 
       if (isIPInRange(addressBuffer, visardAddrsStr, visardSubnetStr))
@@ -99,7 +106,7 @@ bool getStreamTargetInetAddress(string visardAddrsStr, string visardSubnetStr, s
       }
     }
   }
-  if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
+  if (ifAddrStruct != NULL) freeifaddrs(ifAddrStruct);
 
   if (foundValid)
   {
@@ -109,11 +116,12 @@ bool getStreamTargetInetAddress(string visardAddrsStr, string visardSubnetStr, s
   return false;
 }
 
-VINSRemoteInterface::VINSRemoteInterface(std::string rcVisardInetAddrs,
-                             std::string rcVisardSubnet,
-                             unsigned int requestsTimeout) :
+RemoteInterface::RemoteInterface(std::string rcVisardInetAddrs,
+                                 std::string rcVisardSubnet,
+                                 unsigned int requestsTimeout) :
         _visardAddrs(rcVisardInetAddrs), _visardSubnet(rcVisardSubnet),
-        _streamInitialized(false), _baseUrl("http://"+_visardAddrs+"/api/v1"),
+        _streamInitialized(false),
+        _baseUrl("http://" + _visardAddrs + "/api/v1"),
         _timeoutCurl(requestsTimeout)
 {
   // may result in weird errors when not initialized properly
@@ -122,7 +130,7 @@ VINSRemoteInterface::VINSRemoteInterface(std::string rcVisardInetAddrs,
   _otheraddrLength = sizeof(_otheraddr);
 }
 
-VINSRemoteInterface::~VINSRemoteInterface()
+RemoteInterface::~RemoteInterface()
 {
   destroyPoseReceiver();
   if (_reqStreams.size() > 0)
@@ -130,31 +138,35 @@ VINSRemoteInterface::~VINSRemoteInterface()
     cerr << "[VINSRemoteInterface] Could not stop all previously requested pose"
             " streams on rc_visard. Please check device manually"
             " (" << _baseUrl << "/datastreams/pose)"
-            " for not containing any of the following legacy streams and"
-            " delete them otherwise, e.g. using the swagger UI ("
-         << "http://"+_visardAddrs+"/api/swagger/)"
+                 " for not containing any of the following legacy streams and"
+                 " delete them otherwise, e.g. using the swagger UI ("
+         << "http://" + _visardAddrs + "/api/swagger/)"
          << ": "
          << toString(_reqStreams)
          << endl;
   }
 }
 
-void VINSRemoteInterface::start(bool flagRestart) {
+void RemoteInterface::start(bool flagRestart)
+{
   // do put request on respective url (no parameters needed for this simple service call)
   string serviceToCall = (flagRestart) ? "restart" : "start";
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_stereo_ins/services/" + serviceToCall};
+  cpr::Url url = cpr::Url{
+          _baseUrl + "/nodes/rc_stereo_ins/services/" + serviceToCall};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
 }
 
-void VINSRemoteInterface::stop() {
+void RemoteInterface::stop()
+{
   // do put request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_stereo_ins/services/stop"};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
 }
 
-VINSRemoteInterface::State VINSRemoteInterface::getState() {
+RemoteInterface::State RemoteInterface::getState()
+{
   // do get request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_stereo_ins/status"};
   auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
@@ -168,7 +180,8 @@ VINSRemoteInterface::State VINSRemoteInterface::getState() {
     return State::STOPPED;
 }
 
-list<string> VINSRemoteInterface::getActiveStreams() {
+list<string> RemoteInterface::getActiveStreams()
+{
   list<string> destinations;
 
   // do get request on respective url (no parameters needed for this simple service call)
@@ -183,8 +196,8 @@ list<string> VINSRemoteInterface::getActiveStreams() {
   return destinations;
 }
 
-bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
-                                           unsigned int destPort)
+bool RemoteInterface::initPoseReceiver(std::string destAddrs,
+                                       unsigned int destPort)
 {
   // if stream was initialized before, stop it
   destroyPoseReceiver();
@@ -194,9 +207,10 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   { // if no pose stream target inet address specified by user, try to figure out
     if (!getStreamTargetInetAddress(_visardAddrs, _visardSubnet, destAddrs))
     {
-      cerr << "[VINSRemoteInterface] Did not find any network interface on this host which is "
-                      << "reachable from rc_visard's network configuration "
-                      << _visardAddrs << "/" << _visardSubnet << endl;
+      cerr
+              << "[VINSRemoteInterface] Did not find any network interface on this host which is "
+              << "reachable from rc_visard's network configuration "
+              << _visardAddrs << "/" << _visardSubnet << endl;
       return false;
     }
   }
@@ -204,9 +218,10 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   { // if address is specified, check if it is reachable from rc_visard
     if (!isIPInRange(destAddrs, _visardAddrs, _visardSubnet))
     {
-      cerr << "[VINSRemoteInterface] Given inet address " << destAddrs << " on this host is not "
-                                    << "reachable from rc_visard's network configuration "
-                                    << _visardAddrs << "/" << _visardSubnet << endl;
+      cerr << "[VINSRemoteInterface] Given inet address " << destAddrs
+           << " on this host is not "
+           << "reachable from rc_visard's network configuration "
+           << _visardAddrs << "/" << _visardSubnet << endl;
       return false;
     }
   }
@@ -215,7 +230,8 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   _sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (_sockfd < 0)
   {
-    cerr << "[VINSRemoteInterface] Error creating socket: errno " << errno << endl;
+    cerr << "[VINSRemoteInterface] Error creating socket: errno " << errno
+         << endl;
     return false;
   }
 
@@ -225,10 +241,10 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   myaddr.sin_family = AF_INET;
   inet_aton(destAddrs.c_str(), &myaddr.sin_addr); // set IP addrs
   myaddr.sin_port = htons(destPort); // set user specified or any port number
-  if (bind(_sockfd, (sockaddr * ) & myaddr, sizeof(sockaddr)) < 0)
+  if (bind(_sockfd, (sockaddr *) &myaddr, sizeof(sockaddr)) < 0)
   {
     cerr << "[VINSRemoteInterface] Error binding socket to port number "
-                             << destPort << ": errno " << errno << endl;
+         << destPort << ": errno " << errno << endl;
     return false;
   }
 
@@ -238,7 +254,8 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
     socklen_t len = sizeof(myaddr);
     if (getsockname(_sockfd, (struct sockaddr *) &myaddr, &len) < 0)
     {
-      cerr << "[VINSRemoteInterface] Error getting socket name: errno " << errno << endl;
+      cerr << "[VINSRemoteInterface] Error getting socket name: errno " << errno
+           << endl;
       close(_sockfd);
       return false;
     }
@@ -252,8 +269,9 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
                       cpr::Timeout{_timeoutCurl});
   if (put.status_code != 200) // call failed
   {
-    cerr << "[VINSRemoteInterface] Could not successfully request a pose stream from rc_visard: "
-                    << toString(put) << endl;
+    cerr
+            << "[VINSRemoteInterface] Could not successfully request a pose stream from rc_visard: "
+            << toString(put) << endl;
     close(_sockfd);
     return false;
   }
@@ -265,21 +283,27 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   recvtimeout.tv_usec = 0;
   setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &recvtimeout,
              sizeof(struct timeval));
-  int msg_size = TEMP_FAILURE_RETRY(recvfrom(_sockfd,_buffer,sizeof(_buffer),0,
-                          (struct sockaddr *)&_otheraddr,&_otheraddrLength)); // receive msg; blocking call (timeout)
-  if(msg_size<0) // error handling for not having received any message
+  int msg_size = TEMP_FAILURE_RETRY(
+          recvfrom(_sockfd, _buffer, sizeof(_buffer), 0,
+                   (struct sockaddr *) &_otheraddr,
+                   &_otheraddrLength)); // receive msg; blocking call (timeout)
+  if (msg_size < 0) // error handling for not having received any message
   {
     int e = errno;
     if (e == EAGAIN || e == EWOULDBLOCK)
     {
-      cerr << "[VINSRemoteInterface] Did not receive any pose message within the last "
-                                 << recvtimeout.tv_sec*1000 + recvtimeout.tv_usec/1000 << " ms. "
-                                 << "rc_visard does not seem to stream poses (is VINS running?) or you "
-                                 << "seem to have serious network/connection problems!" << endl;
+      cerr
+              << "[VINSRemoteInterface] Did not receive any pose message within the last "
+              << recvtimeout.tv_sec * 1000 + recvtimeout.tv_usec / 1000
+              << " ms. "
+              << "rc_visard does not seem to stream poses (is VINS running?) or you "
+              << "seem to have serious network/connection problems!" << endl;
 
-    } else
+    }
+    else
     {
-      cerr << "[VINSRemoteInterface] Error during recvfrom() on socket: errno " << errno << endl;
+      cerr << "[VINSRemoteInterface] Error during recvfrom() on socket: errno "
+           << errno << endl;
     }
     close(_sockfd);
     cleanUpRequestedStreams();
@@ -293,34 +317,40 @@ bool VINSRemoteInterface::initPoseReceiver(std::string destAddrs,
   return true;
 }
 
-void VINSRemoteInterface::cleanUpRequestedStreams()
+void RemoteInterface::cleanUpRequestedStreams()
 {
   // get a list of currently active streams on rc_visard device
   list<string> rcVisardsActivePoseStreams;
   try
   {
     rcVisardsActivePoseStreams = getActiveStreams();
-  } catch (std::exception& e) {
+  }
+  catch (std::exception &e)
+  {
 //    ROS_WARN_STREAM("Could not get list of active streams for cleaning up previously requested streams: " << e.what());
     return;
   }
 
   // try to stop all previously requested streams
-  for (auto activeStream : rcVisardsActivePoseStreams) {
+  for (auto activeStream : rcVisardsActivePoseStreams)
+  {
     auto found = find(_reqStreams.begin(), _reqStreams.end(), activeStream);
-    if (found != _reqStreams.end()) {
-        cpr::Url url = cpr::Url{_baseUrl + "/datastreams/pose"};
-        auto del = cpr::Delete(url,
-                               cpr::Parameters{{"destination", activeStream}},
-                               cpr::Timeout{_timeoutCurl});
-        if (del.status_code == 200) { // success
-          _reqStreams.erase(found);
-        }
+    if (found != _reqStreams.end())
+    {
+      cpr::Url url = cpr::Url{_baseUrl + "/datastreams/pose"};
+      auto del = cpr::Delete(url,
+                             cpr::Parameters{{"destination", activeStream}},
+                             cpr::Timeout{_timeoutCurl});
+      if (del.status_code == 200)
+      { // success
+        _reqStreams.erase(found);
       }
+    }
   }
 }
 
-void VINSRemoteInterface::destroyPoseReceiver() {
+void RemoteInterface::destroyPoseReceiver()
+{
   if (_streamInitialized)
   {
     _streamInitialized = false;
@@ -329,34 +359,43 @@ void VINSRemoteInterface::destroyPoseReceiver() {
   }
 }
 
-void VINSRemoteInterface::setReceiveTimeout(unsigned int ms) {
+void RemoteInterface::setReceiveTimeout(unsigned int ms)
+{
   _recvtimeout.tv_sec = ms / 1000;
   _recvtimeout.tv_usec = (ms % 1000) * 1000;
   if (setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &_recvtimeout,
-             sizeof(struct timeval)) < 0)
+                 sizeof(struct timeval)) < 0)
   {
-    throw runtime_error("Error during setting receive timeout: setsockopt() returned with errno " + to_string(errno));
+    throw runtime_error(
+            "Error during setting receive timeout: setsockopt() returned with errno " +
+            to_string(errno));
   }
 }
 
-std::shared_ptr<VINSRemoteInterface::PoseType> VINSRemoteInterface::receivePose() {
+std::shared_ptr<RemoteInterface::PoseType> RemoteInterface::receivePose()
+{
   if (!_streamInitialized)
   {
-    throw runtime_error("Streaming not initialized! Have you called initPoseReceiver(...) successfully?");
+    throw runtime_error(
+            "Streaming not initialized! Have you called initPoseReceiver(...) successfully?");
   }
 
   // receive msg from socket; blocking call (timeout)
-  int msg_size = TEMP_FAILURE_RETRY(recvfrom(_sockfd,_buffer,sizeof(_buffer),0,
-                          (struct sockaddr *)&_otheraddr,&_otheraddrLength));
+  int msg_size = TEMP_FAILURE_RETRY(
+          recvfrom(_sockfd, _buffer, sizeof(_buffer), 0,
+                   (struct sockaddr *) &_otheraddr, &_otheraddrLength));
   if (msg_size < 0)
   {
     int e = errno;
-    if (e==EAGAIN || e==EWOULDBLOCK)
+    if (e == EAGAIN || e == EWOULDBLOCK)
     {
       // timeouts are allowed to happen, then return NULL pointer
       return NULL;
-    } else {
-      throw runtime_error("Error during socket recvfrom: errno " + to_string(e));
+    }
+    else
+    {
+      throw runtime_error(
+              "Error during socket recvfrom: errno " + to_string(e));
     }
   }
 
@@ -367,4 +406,5 @@ std::shared_ptr<VINSRemoteInterface::PoseType> VINSRemoteInterface::receivePose(
 }
 
 
+}
 }

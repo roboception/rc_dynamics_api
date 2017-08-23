@@ -9,7 +9,7 @@
 * Author: Christian Emmerich
 */
 
-#include <rcvinsapi/pose_interface.h>
+#include <rc_dynamics_api/remote_interface.h>
 
 #include <fstream>
 #include <getopt.h>
@@ -41,7 +41,7 @@ void printUsage(char *arg)
 }
 
 
-void printPoseAsCSVLine(shared_ptr<rc::VINSRemoteInterface::PoseType> pose, ofstream& s)
+void printPoseAsCSVLine(shared_ptr<rc::dynamics::RemoteInterface::PoseType> pose, ofstream& s)
 {
   static bool firstTime = true;
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
   /**
    * Instantiate VINSRemoteInterface and start listening to pose stream
    */
-  rc::VINSRemoteInterface vins(ip_str, "255.255.255.0");
+  rc::dynamics::RemoteInterface vins(ip_str, "255.255.255.0");
   unsigned int cntPoses=0;
   try
   {
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
                  elapsedSecs.count() < maxRecordingTimeSecs)
               )
       {
-        shared_ptr<rc::VINSRemoteInterface::PoseType> pose = vins.receivePose();
+        shared_ptr<rc::dynamics::RemoteInterface::PoseType> pose = vins.receivePose();
         if (pose)
         {
           ++cntPoses;
