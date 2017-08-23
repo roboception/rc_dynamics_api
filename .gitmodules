@@ -1,6 +1,0 @@
-[submodule "rcvinsapi/opt/cpr"]
-	path = rcvinsapi/opt/cpr
-	url = https://github.com/whoshuu/cpr.git
-[submodule "rcvinsapi/opt/json"]
-	path = rcvinsapi/opt/json
-	url = git://github.com/nlohmann/json.git
