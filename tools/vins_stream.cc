@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
   string ip_str;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hm:d:o:s:")) != -1) {
+  while ((opt = getopt(argc, argv, "hm:i:o:s:")) != -1) {
     switch (opt) {
       case 'i':
         ip_str = string(optarg);
