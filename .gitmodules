@@ -1,0 +1,6 @@
+[submodule "rc_dynamics_api/opt/cpr"]
+	path = rc_dynamics_api/opt/cpr
+	url = https://github.com/whoshuu/cpr.git
+[submodule "rc_dynamics_api/opt/json"]
+	path = rc_dynamics_api/opt/json
+	url = https://github.com/nlohmann/json
