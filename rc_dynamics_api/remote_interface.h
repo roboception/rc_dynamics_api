@@ -147,8 +147,6 @@ class RemoteInterface
     int _sockfd;
     struct timeval _recvtimeout;
     char _buffer[256];   // TODO: correct buffer size??
-    struct sockaddr_in _otheraddr;
-    socklen_t _otheraddrLength;
 };
 
 }

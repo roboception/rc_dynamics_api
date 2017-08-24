@@ -80,7 +80,6 @@ RemoteInterface::RemoteInterface(std::string rcVisardInetAddrs,
   // may result in weird errors when not initialized properly
   _recvtimeout.tv_sec = 0;
   _recvtimeout.tv_usec = 1000 * 10;
-  _otheraddrLength = sizeof(_otheraddr);
 }
 
 RemoteInterface::~RemoteInterface()
@@ -226,8 +225,7 @@ bool RemoteInterface::initPoseReceiver(std::string destInterface,
              sizeof(struct timeval));
   int msg_size = TEMP_FAILURE_RETRY(
           recvfrom(_sockfd, _buffer, sizeof(_buffer), 0,
-                   (struct sockaddr *) &_otheraddr,
-                   &_otheraddrLength)); // receive msg; blocking call (timeout)
+                   NULL, NULL)); // receive msg; blocking call (timeout)
   if (msg_size < 0) // error handling for not having received any message
   {
     int e = errno;
@@ -268,7 +266,8 @@ void RemoteInterface::cleanUpRequestedStreams()
   }
   catch (std::exception &e)
   {
-//    ROS_WARN_STREAM("Could not get list of active streams for cleaning up previously requested streams: " << e.what());
+    cerr << "[RemoteInterface] Could not get list of active streams for "
+            "cleaning up previously requested streams: " << e.what() << endl;
     return;
   }
 
@@ -324,7 +323,7 @@ std::shared_ptr<RemoteInterface::PoseType> RemoteInterface::receivePose()
   // receive msg from socket; blocking call (timeout)
   int msg_size = TEMP_FAILURE_RETRY(
           recvfrom(_sockfd, _buffer, sizeof(_buffer), 0,
-                   (struct sockaddr *) &_otheraddr, &_otheraddrLength));
+                   NULL, NULL));
   if (msg_size < 0)
   {
     int e = errno;
