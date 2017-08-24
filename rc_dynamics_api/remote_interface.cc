@@ -70,56 +70,9 @@ void handleCPRResponse(cpr::Response r)
   }
 }
 
-/**
- * Scan this host's network interfaces for an inet address that is reachable
- * by rc_visard's network configuration
- *
- * @param visardAddrsStr rc_visard's IP address, e.g. "192.168.0.20"
- * @param visardSubnetStr rc_visard's subnet config, e.g. "255.255.255.0"
- * @param targetInetAddress inet address reachable from rc_visard (only valid if returned true)
- * @return true if reachable inet address is found among network interfaces
- */
-bool getStreamTargetInetAddress(string visardAddrsStr, string visardSubnetStr,
-                                string &targetInetAddress)
-{
-  // figure out own network addresses which are reachable from sensor
-  // taken from http://stackoverflow.com/questions/212528/get-the-ip-address-of-the-machine
-  struct ifaddrs *ifAddrStruct = NULL;
-  struct ifaddrs *ifa = NULL;
-  void *tmpAddrPtr = NULL;
-  getifaddrs(&ifAddrStruct);
-  bool foundValid = false;
-  char addressBuffer[INET_ADDRSTRLEN];
-  for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next)
-  {
-    if (!ifa->ifa_addr)
-      continue;
-    if (ifa->ifa_addr->sa_family == AF_INET)
-    { // check it is IP4 address
-      tmpAddrPtr = &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
-      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-
-      if (isIPInRange(addressBuffer, visardAddrsStr, visardSubnetStr))
-      {  //check if IP is in range of sensor's network
-        foundValid = true;
-        break;
-      }
-    }
-  }
-  if (ifAddrStruct != NULL) freeifaddrs(ifAddrStruct);
-
-  if (foundValid)
-  {
-    targetInetAddress = string(addressBuffer);
-    return true;
-  }
-  return false;
-}
-
 RemoteInterface::RemoteInterface(std::string rcVisardInetAddrs,
-                                 std::string rcVisardSubnet,
                                  unsigned int requestsTimeout) :
-        _visardAddrs(rcVisardInetAddrs), _visardSubnet(rcVisardSubnet),
+        _visardAddrs(rcVisardInetAddrs),
         _streamInitialized(false),
         _baseUrl("http://" + _visardAddrs + "/api/v1"),
         _timeoutCurl(requestsTimeout)
@@ -196,34 +149,22 @@ list<string> RemoteInterface::getActiveStreams()
   return destinations;
 }
 
-bool RemoteInterface::initPoseReceiver(std::string destAddrs,
+bool RemoteInterface::initPoseReceiver(std::string destInterface,
                                        unsigned int destPort)
 {
   // if stream was initialized before, stop it
   destroyPoseReceiver();
 
+  std::string destAddress;
+
   // figure out local inet address for streaming
-  if (destAddrs == "")
-  { // if no pose stream target inet address specified by user, try to figure out
-    if (!getStreamTargetInetAddress(_visardAddrs, _visardSubnet, destAddrs))
-    {
-      cerr
-              << "[VINSRemoteInterface] Did not find any network interface on this host which is "
-              << "reachable from rc_visard's network configuration "
-              << _visardAddrs << "/" << _visardSubnet << endl;
-      return false;
-    }
-  }
-  else
-  { // if address is specified, check if it is reachable from rc_visard
-    if (!isIPInRange(destAddrs, _visardAddrs, _visardSubnet))
-    {
-      cerr << "[VINSRemoteInterface] Given inet address " << destAddrs
-           << " on this host is not "
-           << "reachable from rc_visard's network configuration "
-           << _visardAddrs << "/" << _visardSubnet << endl;
-      return false;
-    }
+  if (!getThisHostsIP(destAddress, _visardAddrs, destInterface))
+  {
+    cerr << "[RemoteInterface] Could not infer a valid IP address "
+            "for this host as the destination of the stream! "
+            "Given network interface specification was '" << destAddress
+         << "'." << endl;
+    return false;
   }
 
   // open socket for UDP listening
@@ -239,7 +180,7 @@ bool RemoteInterface::initPoseReceiver(std::string destAddrs,
   struct sockaddr_in myaddr;
   memset((char *) &myaddr, 0, sizeof(myaddr));
   myaddr.sin_family = AF_INET;
-  inet_aton(destAddrs.c_str(), &myaddr.sin_addr); // set IP addrs
+  inet_aton(destAddress.c_str(), &myaddr.sin_addr); // set IP addrs
   myaddr.sin_port = htons(destPort); // set user specified or any port number
   if (bind(_sockfd, (sockaddr *) &myaddr, sizeof(sockaddr)) < 0)
   {
@@ -263,7 +204,7 @@ bool RemoteInterface::initPoseReceiver(std::string destAddrs,
   }
 
   // do REST-API call requesting a UDP stream from rc_visard device to socket
-  string destination = destAddrs + ":" + to_string(destPort);
+  string destination = destAddress + ":" + to_string(destPort);
   auto put = cpr::Put(cpr::Url{_baseUrl + "/datastreams/pose"},
                       cpr::Parameters{{"destination", destination}},
                       cpr::Timeout{_timeoutCurl});

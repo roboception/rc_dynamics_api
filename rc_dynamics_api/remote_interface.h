@@ -26,7 +26,8 @@ namespace rc
 namespace dynamics
 {
 /**
- * Simple remote interface to access the VINS functionalities on the rc_visard.
+ * Simple remote interface to access the dynamic state estimates
+ * of an rc_visard device as data streams.
  */
 class RemoteInterface
 {
@@ -50,7 +51,7 @@ class RemoteInterface
      * @param rcVisardSubnet rc_visard's subnet mask as string, e.g "255.255.255.0"
      * @param requestsTimeout timeout in [ms] for doing REST-API calls
      */
-    RemoteInterface(std::string rcVisardInetAddrs, std::string rcVisardSubnet,
+    RemoteInterface(std::string rcVisardInetAddrs,
                     unsigned int requestsTimeout = 5000);
 
     ~RemoteInterface();
@@ -96,12 +97,12 @@ class RemoteInterface
      * Stream can only be established successfully if VINS module is running on
      * rc_visard, see getState() and start(...) methods.
      *
-     * @param destAdrrs empty or this hosts inet address as string, e.g "192.168.0.1"
+     * @param destInterface empty or one of this hosts network interfaces, e.g. "eth0"
      * @param destPort 0 or this hosts port number
      * @return true, if stream could be initialized successfully
      */
     bool
-    initPoseReceiver(std::string destAdrrs = "", unsigned int destPort = 0);
+    initPoseReceiver(std::string destInterface = "", unsigned int destPort = 0);
 
     /**
      * Antagonist method to initPoseReceiver(), i.e. stops background processes
@@ -134,7 +135,7 @@ class RemoteInterface
   protected:
     void cleanUpRequestedStreams();
 
-    std::string _visardAddrs, _visardSubnet;
+    std::string _visardAddrs;
 
     bool _streamInitialized;
     std::list<std::string> _reqStreams;

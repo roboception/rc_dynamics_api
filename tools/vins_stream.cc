@@ -32,11 +32,13 @@ void signal_callback_handler(int signum)
 
 void printUsage(char *arg)
 {
-  cout << "Requests a pose stream from the specified rc_visard IP and "
-          "prints received poses (or records them as csv-file, see -o option)."
-       << "\nUsage: "
+  cout << "\nRequests a pose stream from the specified rc_visard IP "
+          "\nand prints received poses (or records them as csv-file, "
+          "\nsee -o option)."
+       << "\n\nUsage: \n\t"
        << arg
-       << " -i IP [-m maxNumPoses][-s maxRecTimeSecs][-o outputFile]"
+       << " -v rcVisardIP [-i networkInterface]"
+          "\n\t\t[-m maxNumPoses][-s maxRecTimeSecs][-o outputFile]"
        << endl;
 }
 
@@ -88,18 +90,20 @@ int main(int argc, char *argv[])
   /**
    * Parse program options (e.g. IP )
    */
-  string outputFileName;
+  string outputFileName, ip_str, ifa_str = "";
   unsigned int maxNumRecordingPoses = 50, maxRecordingTimeSecs = 5;
   bool userSetOutputFile = false;
   bool userSetMaxPoses = false;
   bool userSetRecordingTime = false;
   bool userSetIp = false;
-  string ip_str;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hm:i:o:s:")) != -1) {
+  while ((opt = getopt(argc, argv, "hm:v:i:o:s:")) != -1) {
     switch (opt) {
       case 'i':
+        ifa_str = string(optarg);
+        break;
+      case 'v':
         ip_str = string(optarg);
         userSetIp = true;
         break;
@@ -156,7 +160,7 @@ int main(int argc, char *argv[])
   /**
    * Instantiate VINSRemoteInterface and start listening to pose stream
    */
-  rc::dynamics::RemoteInterface vins(ip_str, "255.255.255.0");
+  rc::dynamics::RemoteInterface vins(ip_str);
   unsigned int cntPoses=0;
   try
   {
@@ -164,7 +168,7 @@ int main(int argc, char *argv[])
     vins.start(false);
 
     cout << "Initializing pose stream..." << endl;
-    if (!vins.initPoseReceiver())
+    if (!vins.initPoseReceiver(ifa_str))
     {
       cerr << "Could not initialize pose stream!" << endl;
     } else
