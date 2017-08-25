@@ -12,12 +12,8 @@
 
 #include "remote_interface.h"
 
-#include "net_utils.h"
-
 #include <cpr/cpr.h>
 #include <json.hpp>
-
-
 
 
 using namespace std;
@@ -84,13 +80,42 @@ RemoteInterface::create(const std::string &rcVisardInetAddrs,
 }
 
 
-RemoteInterface::RemoteInterface(std::string rcVisardInetAddrs,
+RemoteInterface::RemoteInterface(const std::string &rcVisardIP,
                                  unsigned int requestsTimeout) :
-        _visardAddrs(rcVisardInetAddrs),
+        _visardAddrs(rcVisardIP),
         _baseUrl("http://" + _visardAddrs + "/api/v1"),
         _timeoutCurl(requestsTimeout)
 {
   _reqStreams.clear();
+  _availStreams.clear();
+
+  // use inet_pton to check if given string is a valid IP address
+  struct sockaddr_in sa;
+  int r = inet_pton(AF_INET, rcVisardIP.c_str(), &(sa.sin_addr));
+  if (r == 0)
+  {
+    throw std::invalid_argument("Given IP address is not a valid address: "
+                                + rcVisardIP);
+  } else if (r == -1)
+  {
+    std::stringstream msg;
+    msg << "Error while checking validity of IP address " << rcVisardIP
+        << ": errno " << errno;
+    throw std::invalid_argument(msg.str());
+  }
+
+
+  // initial connection to rc_visard and get streams, i.e. do get request on
+  // respective url (no parameters needed for this simple service call)
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams"};
+  auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
+  handleCPRResponse(get);
+
+  // parse text of response into json object
+  auto j = json::parse(get.text);
+  for (auto& stream : j) {
+    _availStreams[stream["name"]] = stream["protobuf"];
+  }
 }
 
 
@@ -154,6 +179,8 @@ RemoteInterface::State RemoteInterface::getState()
 
 list<string> RemoteInterface::getDestinationsOfStream(const string &type)
 {
+  checkStreamTypeAvailable(type);
+
   list<string> destinations;
 
   // do get request on respective url (no parameters needed for this simple service call)
@@ -174,6 +201,8 @@ list<string> RemoteInterface::getDestinationsOfStream(const string &type)
 void RemoteInterface::addDestinationToStream(const string &type,
                                              const string &destination)
 {
+  checkStreamTypeAvailable(type);
+
   // do put request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl},
@@ -188,6 +217,8 @@ void RemoteInterface::addDestinationToStream(const string &type,
 void RemoteInterface::deleteDestinationFromStream(const string &type,
                                                   const string &destination)
 {
+  checkStreamTypeAvailable(type);
+
   // do delete request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
   auto del = cpr::Delete(url, cpr::Timeout{_timeoutCurl},
@@ -237,6 +268,17 @@ void RemoteInterface::cleanUpRequestedStreams()
       }
     }
 
+  }
+}
+
+void RemoteInterface::checkStreamTypeAvailable(const std::string& type) {
+  auto found = _availStreams.find(type);
+  if (found == _availStreams.end())
+  {
+    stringstream msg;
+    msg << "Stream of type '" << type << "' is not available on rc_visard "
+        << _visardAddrs;
+    throw invalid_argument(msg.str());
   }
 }
 

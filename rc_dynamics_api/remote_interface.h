@@ -165,6 +165,8 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
                             const std::string &destInterface = "",
                             unsigned int destPort = 0)
     {
+      checkStreamTypeAvailable(type);
+
       // figure out local inet address for streaming
       std::string destAddress;
       if (!rc::getThisHostsIP(destAddress, _visardAddrs, destInterface))
@@ -263,13 +265,15 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 
     static std::map<std::string, RemoteInterface::Ptr> _remoteInterfaces;
 
-    RemoteInterface(std::string rcVisardInetAddrs,
+    RemoteInterface(const std::string& rcVisardIP,
                     unsigned int requestsTimeout = 5000);
 
     void cleanUpRequestedStreams();
+    void checkStreamTypeAvailable(const std::string& type);
 
     std::string _visardAddrs;
     std::map<std::string, std::list<std::string>> _reqStreams;
+    std::map<std::string, std::string> _availStreams;
     std::string _baseUrl;
     int _timeoutCurl;
 };
