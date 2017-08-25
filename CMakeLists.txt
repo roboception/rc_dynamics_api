@@ -65,8 +65,13 @@ add_definitions(-std=c++11)
 
 # - Build individual parts -
 
+option(BUILD_EXAMPLES "Build test programs" ON)
+
 add_subdirectory(rc_dynamics_api)
 add_subdirectory(tools)
+if (BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
 
 # export project targets
 

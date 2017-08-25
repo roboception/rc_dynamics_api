@@ -31,14 +31,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-project(tools CXX)
-
 # build programs
 
-add_executable(vins_stream vins_stream.cc)
-include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/../rcvinsapi)
-target_link_libraries(vins_stream rc_dynamics_api_static ${PROTOBUF_LIBRARIES})
+add_executable(simple_receiver simple_receiver.cc)
+include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/../rc_dynamics_api)
+target_link_libraries(simple_receiver rc_dynamics_api_static ${PROTOBUF_LIBRARIES})
 
-# install tools
-
-install(TARGETS vins_stream COMPONENT bin DESTINATION bin)
