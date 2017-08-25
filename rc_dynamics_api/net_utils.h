@@ -37,9 +37,6 @@ uint32_t IPToUInt(const std::string ip);
  */
 bool isIPInRange(const std::string ip, const std::string network, const std::string mask);
 
-
-
-
 /**
  * Convenience function to scan this host's (multiple) network interface(s) for
  * a valid IP address.

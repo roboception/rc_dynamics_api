@@ -12,10 +12,8 @@
 #include <rc_dynamics_api/remote_interface.h>
 
 #include <fstream>
-#include <getopt.h>
 #include <signal.h>
 #include <chrono>
-#include <iostream>
 
 using namespace std;
 
@@ -98,8 +96,10 @@ int main(int argc, char *argv[])
   bool userSetIp = false;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hm:v:i:o:s:")) != -1) {
-    switch (opt) {
+  while ((opt = getopt(argc, argv, "hm:v:i:o:s:")) != -1)
+  {
+    switch (opt)
+    {
       case 'i':
         ifa_str = string(optarg);
         break;
@@ -160,53 +160,54 @@ int main(int argc, char *argv[])
   /**
    * Instantiate VINSRemoteInterface and start listening to pose stream
    */
-  rc::dynamics::RemoteInterface vins(ip_str);
-  unsigned int cntPoses=0;
+  using namespace rc::dynamics;
+  RemoteInterface::Ptr vins = RemoteInterface::create(ip_str);
+  unsigned int cntPoses = 0;
   try
   {
     cout << "Starting VINS on device..." << endl;
-    vins.start(false);
+    vins->start(false);
 
     cout << "Initializing pose stream..." << endl;
-    if (!vins.initPoseReceiver(ifa_str))
-    {
-      cerr << "Could not initialize pose stream!" << endl;
-    } else
-    {
-      unsigned int timeoutMillis = 100;
-      vins.setReceiveTimeout(timeoutMillis);
-      cout << "Listening to poses..." << endl;
+    DataReceiver<RemoteInterface::PoseType>::Ptr receiver =
+            vins->createReceiverForStream<RemoteInterface::PoseType>("pose",
+                                                                    ifa_str);
 
-      chrono::time_point<chrono::system_clock> start = chrono::system_clock::now();
-      chrono::duration<double> elapsedSecs(0);
-      while (!stop_vins_streaming
-             && (!userSetMaxPoses || cntPoses < maxNumRecordingPoses)
-             && (!userSetRecordingTime ||
-                 elapsedSecs.count() < maxRecordingTimeSecs)
-              )
+    unsigned int timeoutMillis = 100;
+    receiver->setTimeout(timeoutMillis);
+    cout << "Listening to poses..." << endl;
+
+    chrono::time_point<chrono::system_clock> start = chrono::system_clock::now();
+    chrono::duration<double> elapsedSecs(0);
+    while (!stop_vins_streaming
+           && (!userSetMaxPoses || cntPoses < maxNumRecordingPoses)
+           && (!userSetRecordingTime ||
+               elapsedSecs.count() < maxRecordingTimeSecs)
+            )
+    {
+      shared_ptr<RemoteInterface::PoseType> pose = receiver->receive();
+      if (pose)
       {
-        shared_ptr<rc::dynamics::RemoteInterface::PoseType> pose = vins.receivePose();
-        if (pose)
+        ++cntPoses;
+        if (outputFile.is_open())
         {
-          ++cntPoses;
-          if (outputFile.is_open())
-          {
-            printPoseAsCSVLine(pose, outputFile);
-          }
-          else
-          {
-            cout << "received pose " << endl << pose->DebugString() << endl;
-          }
+          printPoseAsCSVLine(pose, outputFile);
         }
         else
         {
-          cerr << "did not receive any data during last " << timeoutMillis
-               << " ms." << endl;
+          cout << "received pose " << endl << pose->DebugString() << endl;
         }
-        elapsedSecs = chrono::system_clock::now() - start;
       }
+      else
+      {
+        cerr << "did not receive any data during last " << timeoutMillis
+             << " ms." << endl;
+      }
+      elapsedSecs = chrono::system_clock::now() - start;
     }
-  } catch (exception &e)
+
+  }
+  catch (exception &e)
   {
     cout << "Caught exception during streaming, stopping: " << e.what() << endl;
   }
@@ -218,10 +219,10 @@ int main(int argc, char *argv[])
   try
   {
     cout << "stopping VINS on device..." << endl;
-    vins.destroyPoseReceiver();
-    vins.stop();
+    vins->stop();
 
-  } catch (exception &e)
+  }
+  catch (exception &e)
   {
     cout << "Caught exception: " << e.what() << endl;
   }
@@ -229,8 +230,11 @@ int main(int argc, char *argv[])
   if (outputFile.is_open())
   {
     outputFile.close();
-    cout << "Recorded " << cntPoses << " poses to '" << outputFileName << "'." << endl;
-  } else {
+    cout << "Recorded " << cntPoses << " poses to '" << outputFileName << "'."
+         << endl;
+  }
+  else
+  {
     cout << "Received  " << cntPoses << " poses." << endl;
   }
 

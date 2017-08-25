@@ -14,17 +14,9 @@
 
 #include "net_utils.h"
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <ifaddrs.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include <cpr/cpr.h>
 #include <json.hpp>
+
 
 
 
@@ -70,34 +62,59 @@ void handleCPRResponse(cpr::Response r)
   }
 }
 
+map<string, RemoteInterface::Ptr> RemoteInterface::_remoteInterfaces = map<string,RemoteInterface::Ptr>();
+
+RemoteInterface::Ptr
+RemoteInterface::create(const std::string &rcVisardInetAddrs,
+                        unsigned int requestsTimeout)
+{
+  // check if interface is already opened
+  auto found = RemoteInterface::_remoteInterfaces.find(rcVisardInetAddrs);
+  if (found != RemoteInterface::_remoteInterfaces.end())
+  {
+    return found->second;
+  }
+
+  // if not, create it
+  auto newRemoteInterface = Ptr(
+          new RemoteInterface(rcVisardInetAddrs, requestsTimeout));
+  RemoteInterface::_remoteInterfaces[rcVisardInetAddrs] = newRemoteInterface;
+
+  return newRemoteInterface;
+}
+
+
 RemoteInterface::RemoteInterface(std::string rcVisardInetAddrs,
                                  unsigned int requestsTimeout) :
         _visardAddrs(rcVisardInetAddrs),
-        _streamInitialized(false),
         _baseUrl("http://" + _visardAddrs + "/api/v1"),
         _timeoutCurl(requestsTimeout)
 {
-  // may result in weird errors when not initialized properly
-  _recvtimeout.tv_sec = 0;
-  _recvtimeout.tv_usec = 1000 * 10;
+  _reqStreams.clear();
 }
+
 
 RemoteInterface::~RemoteInterface()
 {
-  destroyPoseReceiver();
-  if (_reqStreams.size() > 0)
+  cleanUpRequestedStreams();
+  for (const auto& s : _reqStreams)
   {
-    cerr << "[VINSRemoteInterface] Could not stop all previously requested pose"
-            " streams on rc_visard. Please check device manually"
-            " (" << _baseUrl << "/datastreams/pose)"
-                 " for not containing any of the following legacy streams and"
-                 " delete them otherwise, e.g. using the swagger UI ("
-         << "http://" + _visardAddrs + "/api/swagger/)"
-         << ": "
-         << toString(_reqStreams)
-         << endl;
+    if (s.second.size() > 0)
+    {
+      cerr << "[RemoteInterface] Could not stop all previously requested"
+              " streams of type " << s.first <<  " on rc_visard. Please check "
+              "device manually"
+              " (" << _baseUrl << "/datastreams/" << s.first << ")"
+              " for not containing any of the following legacy streams and"
+              " delete them otherwise, e.g. using the swagger UI ("
+           << "http://" + _visardAddrs + "/api/swagger/)"
+           << ": "
+           << toString(s.second)
+           << endl;
+    }
   }
 }
+
 
 void RemoteInterface::start(bool flagRestart)
 {
@@ -109,6 +126,7 @@ void RemoteInterface::start(bool flagRestart)
   handleCPRResponse(put);
 }
 
+
 void RemoteInterface::stop()
 {
   // do put request on respective url (no parameters needed for this simple service call)
@@ -116,6 +134,7 @@ void RemoteInterface::stop()
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
 }
+
 
 RemoteInterface::State RemoteInterface::getState()
 {
@@ -132,217 +151,93 @@ RemoteInterface::State RemoteInterface::getState()
     return State::STOPPED;
 }
 
-list<string> RemoteInterface::getActiveStreams()
+
+list<string> RemoteInterface::getDestinationsOfStream(const string &type)
 {
   list<string> destinations;
 
   // do get request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/pose"};
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
   auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(get);
 
   // parse result as json
   auto j = json::parse(get.text);
   for (auto dest : j["destinations"])
+  {
     destinations.push_back(dest.get<string>());
+  }
   return destinations;
 }
 
-bool RemoteInterface::initPoseReceiver(std::string destInterface,
-                                       unsigned int destPort)
+
+void RemoteInterface::addDestinationToStream(const string &type,
+                                             const string &destination)
 {
-  // if stream was initialized before, stop it
-  destroyPoseReceiver();
+  // do put request on respective url (no parameters needed for this simple service call)
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
+  auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl},
+                      cpr::Parameters{{"destination", destination}});
+  handleCPRResponse(put);
 
-  std::string destAddress;
-
-  // figure out local inet address for streaming
-  if (!getThisHostsIP(destAddress, _visardAddrs, destInterface))
-  {
-    cerr << "[RemoteInterface] Could not infer a valid IP address "
-            "for this host as the destination of the stream! "
-            "Given network interface specification was '" << destAddress
-         << "'." << endl;
-    return false;
-  }
-
-  // open socket for UDP listening
-  _sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (_sockfd < 0)
-  {
-    cerr << "[VINSRemoteInterface] Error creating socket: errno " << errno
-         << endl;
-    return false;
-  }
-
-  // bind socket to (either arbitrary or user specified) port number
-  struct sockaddr_in myaddr;
-  memset((char *) &myaddr, 0, sizeof(myaddr));
-  myaddr.sin_family = AF_INET;
-  inet_aton(destAddress.c_str(), &myaddr.sin_addr); // set IP addrs
-  myaddr.sin_port = htons(destPort); // set user specified or any port number
-  if (bind(_sockfd, (sockaddr *) &myaddr, sizeof(sockaddr)) < 0)
-  {
-    cerr << "[VINSRemoteInterface] Error binding socket to port number "
-         << destPort << ": errno " << errno << endl;
-    return false;
-  }
-
-  // if socket was bound to arbitrary port number we need to figure out to which one
-  if (destPort == 0)
-  {
-    socklen_t len = sizeof(myaddr);
-    if (getsockname(_sockfd, (struct sockaddr *) &myaddr, &len) < 0)
-    {
-      cerr << "[VINSRemoteInterface] Error getting socket name: errno " << errno
-           << endl;
-      close(_sockfd);
-      return false;
-    }
-    destPort = ntohs(myaddr.sin_port);
-  }
-
-  // do REST-API call requesting a UDP stream from rc_visard device to socket
-  string destination = destAddress + ":" + to_string(destPort);
-  auto put = cpr::Put(cpr::Url{_baseUrl + "/datastreams/pose"},
-                      cpr::Parameters{{"destination", destination}},
-                      cpr::Timeout{_timeoutCurl});
-  if (put.status_code != 200) // call failed
-  {
-    cerr
-            << "[VINSRemoteInterface] Could not successfully request a pose stream from rc_visard: "
-            << toString(put) << endl;
-    close(_sockfd);
-    return false;
-  }
-  _reqStreams.push_back(destination);
-
-  // waiting for first message; we set long a timeout for receiving data
-  struct timeval recvtimeout;
-  recvtimeout.tv_sec = 5;
-  recvtimeout.tv_usec = 0;
-  setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &recvtimeout,
-             sizeof(struct timeval));
-  int msg_size = TEMP_FAILURE_RETRY(
-          recvfrom(_sockfd, _buffer, sizeof(_buffer), 0,
-                   NULL, NULL)); // receive msg; blocking call (timeout)
-  if (msg_size < 0) // error handling for not having received any message
-  {
-    int e = errno;
-    if (e == EAGAIN || e == EWOULDBLOCK)
-    {
-      cerr
-              << "[VINSRemoteInterface] Did not receive any pose message within the last "
-              << recvtimeout.tv_sec * 1000 + recvtimeout.tv_usec / 1000
-              << " ms. "
-              << "rc_visard does not seem to stream poses (is VINS running?) or you "
-              << "seem to have serious network/connection problems!" << endl;
-
-    }
-    else
-    {
-      cerr << "[VINSRemoteInterface] Error during recvfrom() on socket: errno "
-           << errno << endl;
-    }
-    close(_sockfd);
-    cleanUpRequestedStreams();
-    return false;
-  }
-
-  // stream established, prepare everything for normal pose receiving
-  setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &_recvtimeout,
-             sizeof(struct timeval));
-  _streamInitialized = true;
-  return true;
+  // keep track of added destinations
+  _reqStreams[type].push_back(destination);
 }
+
+
+void RemoteInterface::deleteDestinationFromStream(const string &type,
+                                                  const string &destination)
+{
+  // do delete request on respective url (no parameters needed for this simple service call)
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
+  auto del = cpr::Delete(url, cpr::Timeout{_timeoutCurl},
+                         cpr::Parameters{{"destination", destination}});
+  handleCPRResponse(del);
+
+  // delete destination also from list of requested streams
+  auto& destinations = _reqStreams[type];
+  auto found = find(destinations.begin(), destinations.end(), destination);
+  if (found != destinations.end())
+    destinations.erase(found);
+}
+
 
 void RemoteInterface::cleanUpRequestedStreams()
 {
-  // get a list of currently active streams on rc_visard device
-  list<string> rcVisardsActivePoseStreams;
-  try
+  // for each stream type check currently running streams on rc_visard device
+  for (auto const &s : _reqStreams)
   {
-    rcVisardsActivePoseStreams = getActiveStreams();
-  }
-  catch (std::exception &e)
-  {
-    cerr << "[RemoteInterface] Could not get list of active streams for "
-            "cleaning up previously requested streams: " << e.what() << endl;
-    return;
-  }
-
-  // try to stop all previously requested streams
-  for (auto activeStream : rcVisardsActivePoseStreams)
-  {
-    auto found = find(_reqStreams.begin(), _reqStreams.end(), activeStream);
-    if (found != _reqStreams.end())
+    // get a list of currently active streams of this type on rc_visard device
+    list<string> rcVisardsActiveStreams;
+    try
     {
-      cpr::Url url = cpr::Url{_baseUrl + "/datastreams/pose"};
-      auto del = cpr::Delete(url,
-                             cpr::Parameters{{"destination", activeStream}},
-                             cpr::Timeout{_timeoutCurl});
-      if (del.status_code == 200)
-      { // success
-        _reqStreams.erase(found);
+      rcVisardsActiveStreams = getDestinationsOfStream(s.first);
+    }
+    catch (std::exception &e)
+    {
+      cerr << "[RemoteInterface] Could not get list of active " << s.first
+           << " streams for cleaning up previously requested streams: "
+           << e.what() << endl;
+      continue;
+    }
+
+    // try to stop all previously requested streams of this type
+    for (auto activeStream : rcVisardsActiveStreams)
+    {
+      auto found = find(s.second.begin(), s.second.end(), activeStream);
+      if (found != s.second.end())
+      {
+        try {
+          deleteDestinationFromStream(s.first, activeStream);
+        } catch (std::exception &e) {
+          cerr << "[RemoteInterface] Could not delete destination "
+               << activeStream << " from " << s.first << " stream: "
+               << e.what() << endl;
+        }
       }
     }
-  }
-}
 
-void RemoteInterface::destroyPoseReceiver()
-{
-  if (_streamInitialized)
-  {
-    _streamInitialized = false;
-    close(_sockfd);
-    cleanUpRequestedStreams();
   }
-}
-
-void RemoteInterface::setReceiveTimeout(unsigned int ms)
-{
-  _recvtimeout.tv_sec = ms / 1000;
-  _recvtimeout.tv_usec = (ms % 1000) * 1000;
-  if (setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &_recvtimeout,
-                 sizeof(struct timeval)) < 0)
-  {
-    throw runtime_error(
-            "Error during setting receive timeout: setsockopt() returned with errno " +
-            to_string(errno));
-  }
-}
-
-std::shared_ptr<RemoteInterface::PoseType> RemoteInterface::receivePose()
-{
-  if (!_streamInitialized)
-  {
-    throw runtime_error(
-            "Streaming not initialized! Have you called initPoseReceiver(...) successfully?");
-  }
-
-  // receive msg from socket; blocking call (timeout)
-  int msg_size = TEMP_FAILURE_RETRY(
-          recvfrom(_sockfd, _buffer, sizeof(_buffer), 0,
-                   NULL, NULL));
-  if (msg_size < 0)
-  {
-    int e = errno;
-    if (e == EAGAIN || e == EWOULDBLOCK)
-    {
-      // timeouts are allowed to happen, then return NULL pointer
-      return NULL;
-    }
-    else
-    {
-      throw runtime_error(
-              "Error during socket recvfrom: errno " + to_string(e));
-    }
-  }
-
-  // parse msgs as probobuf
-  auto protoPose = shared_ptr<PoseType>(new PoseType());
-  protoPose->ParseFromArray(_buffer, msg_size);
-  return protoPose;
 }
 
 

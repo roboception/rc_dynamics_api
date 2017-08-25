@@ -105,12 +105,13 @@ TARGET_LINK_LIBRARIES(${PROTOLIBNAME}
 
 set(src
     net_utils.cc
-        remote_interface.cc
+    remote_interface.cc
+    data_receiver.h
 )
 
 set(hh
     net_utils.h
-        remote_interface.h
+    remote_interface.h
 )
 
 add_library(rc_dynamics_api_static STATIC ${src})
