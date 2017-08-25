@@ -38,7 +38,7 @@ void printUsage(char *arg)
           "\nand prints received poses to std out."
        << "\n\nUsage: \n\t"
        << arg
-       << " -v rcVisardIP [-i networkInterface][-s timeSecs]"
+       << " -v rcVisardIP [-i networkInterface][-m maxNumPoses]"
        << endl;
 }
 
