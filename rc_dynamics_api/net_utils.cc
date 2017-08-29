@@ -14,6 +14,7 @@
 #include <string.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 namespace rc {
 
@@ -49,8 +50,8 @@ bool isIPInRange(const std::string ip, const std::string network, const std::str
 
 
 bool getThisHostsIP(string &thisHostsIP,
-                    string otherHostsIP,
-                    string networkInterface)
+                    const string &otherHostsIP,
+                    const string &networkInterface)
 {
   // scan all network interfaces (for the desired one)
   struct ifaddrs *ifAddrStruct = NULL;
@@ -108,6 +109,14 @@ bool getThisHostsIP(string &thisHostsIP,
   if (foundValid)
     thisHostsIP = string(addressBuffer);
   return foundValid;
+}
+
+bool isValidIPAddress(const std::string &ip)
+{
+  // use inet_pton to check if given string is a valid IP address
+  static struct sockaddr_in sa;
+  return TEMP_FAILURE_RETRY(inet_pton(AF_INET, ip.c_str(), &(sa.sin_addr))) ==
+         1;
 }
 
 }

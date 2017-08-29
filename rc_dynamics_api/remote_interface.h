@@ -21,6 +21,8 @@
 #include <netinet/in.h>
 
 #include "roboception/msgs/frame.pb.h"
+#include "roboception/msgs/dynamics.pb.h"
+#include "roboception/msgs/imu.pb.h"
 
 #include "data_receiver.h"
 #include "net_utils.h"
@@ -29,6 +31,8 @@ namespace rc
 {
 namespace dynamics
 {
+
+
 /**
  * Simple remote interface to access the dynamic state estimates
  * of an rc_visard device as data streams.
@@ -56,11 +60,6 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 
     using Ptr = std::shared_ptr<RemoteInterface>;
 
-    /**
-     * PoseType
-     */
-    using PoseType = roboception::msgs::Frame;
-
     enum State
     {
       RUNNING,
@@ -80,23 +79,36 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     virtual ~RemoteInterface();
 
     /**
-     * Sets VINS module to running state.
+     * Sets rc_dynamics module to running state.
      *
-     * @param flagRestart do a restart, if enable==true and VINS module was already running
+     * @param flagRestart do a restart, if enable==true and rc_dynamics module was already running
      */
     void start(bool flagRestart = false);
 
     /**
-     * Stops VINS module
+     * Stops rc_dynamics module
      */
     void stop();
 
     /**
-     * Checks state of VINS module (running, stopped, ...)
+     * Checks state of rc_dynamics module (running, stopped, ...)
      *
-     * @return the current VINS state
+     * @return the current rc_dynamics state
      */
     State getState();
+
+    /**
+     * Returns a list all available streams on rc_visard
+     * @return
+     */
+    std::list<std::string> getAvailableStreams();
+
+    /**
+     * Returns the protobuf type used to serialize the data for a given stream
+     * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
+     * @return the corresponding protobuf type as string (e.g. "Frame" or "Dynamics")
+     */
+    std::string getProtobufTypeOfStream(const std::string &stream);
 
 
     /**
@@ -105,38 +117,38 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      * Streams here are represented as their destinations using IP address and
      * port number.
      *
-     * @param type a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
+     * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
      * @return list of destinations of represented as strings, e.g. "192.168.0.1:30000"
      */
-    std::list<std::string> getDestinationsOfStream(const std::string &type);
+    std::list<std::string> getDestinationsOfStream(const std::string &stream);
 
 
     /**
      * Adds a destination to a stream, i.e. request rc_visard to stream data of
      * the specified type to the given destination.
      *
-     * @param type stream type, e.g. "pose", "pose_rt" or "dynamics"
+     * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
      * @param destination string-represented destination of the data stream, e.g. "192.168.0.1:30000"
      */
-    void addDestinationToStream(const std::string &type,
+    void addDestinationToStream(const std::string &stream,
                                 const std::string &destination);
 
     /**
      * Deletes a destination from a stream, i.e. request rc_visard to stop
      * streaming data of the specified type to the given destination.
      *
-     * @param type stream type, e.g. "pose", "pose_rt" or "dynamics"
+     * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
      * @param destination string-represented destination of the data stream, e.g. "192.168.0.1:30000"
      */
-    void deleteDestinationFromStream(const std::string &type,
+    void deleteDestinationFromStream(const std::string &stream,
                                      const std::string &destination);
 
     /**
      * Deletes all destinations from a stream.
      *
-     * @param type stream type, e.g. "pose", "pose_rt" or "dynamics"
+     * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
      */
-    void deleteAllDestinationsFromStream(const std::string &type);
+    void deleteAllDestinationsFromStream(const std::string &stream);
 
     /**
      * Convenience method that automatically
@@ -146,7 +158,7 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      *  3) waits/checks for the stream being established
      *  4) (removes the destination automatically from rc_visard device if data receiver is no longer used)
      *
-     * Stream can only be established successfully if VINS module is running on
+     * Stream can only be established successfully if rc_dynamics module is running on
      * rc_visard, see getState() and start(...) methods.
      *
      *
@@ -159,109 +171,13 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      * @param destPort 0 or this hosts port number
      * @return true, if stream could be initialized successfully
      */
-    template<class ProtobufType>
-    typename DataReceiver<ProtobufType>::Ptr
-    createReceiverForStream(const std::string &type,
+    DataReceiver::Ptr
+    createReceiverForStream(const std::string &stream,
                             const std::string &destInterface = "",
-                            unsigned int destPort = 0)
-    {
-      checkStreamTypeAvailable(type);
-
-      // figure out local inet address for streaming
-      std::string destAddress;
-      if (!rc::getThisHostsIP(destAddress, _visardAddrs, destInterface))
-      {
-        std::stringstream msg;
-        msg << "Could not infer a valid IP address "
-                "for this host as the destination of the stream! "
-                "Given network interface specification was '" << destInterface
-            << "'.";
-        throw std::invalid_argument(msg.str());
-      }
-
-      // create data receiver with port as specified
-      typename DataReceiver<ProtobufType>::Ptr receiver =
-              TrackedDataReceiver<ProtobufType>::create(destAddress, destPort,
-                                                        type,
-                                                        shared_from_this());
-
-      // do REST-API call requesting a UDP stream from rc_visard device
-      std::string destination = destAddress + ":" + std::to_string(destPort);
-      addDestinationToStream(type, destination);
-
-      // waiting for first message; we set a long timeout for receiving data
-      unsigned int initialTimeOut = 5000;
-      receiver->setTimeout(initialTimeOut);
-      std::shared_ptr<ProtobufType> protoMsg = receiver->receive();
-      if (!protoMsg)
-      {
-        std::stringstream msg;
-        msg << "Did not receive any data within the last "
-            << initialTimeOut << " ms. "
-            << "Either rc_visard does not seem to send the data properly "
-                    "(is rc_dynamics module running?) or you seem to have serious "
-                    "network/connection problems!";
-        throw std::runtime_error(msg.str());
-      }
-
-      // stream established, prepare everything for normal pose receiving
-      receiver->setTimeout(100);
-      return receiver;
-    }
+                            unsigned int destPort = 0);
 
 
   protected:
-
-    /**
-     * Class for data stream receivers that are created by this
-     * remote interface in order to keep track of created streams.
-     *
-     * @tparam ProtobufType
-     */
-    template<class ProtobufType>
-    class TrackedDataReceiver : public DataReceiver<ProtobufType>
-    {
-      public:
-        static std::shared_ptr<TrackedDataReceiver>
-        create(const std::string &ip_address, unsigned int &port,
-               const std::string &stream,
-               std::shared_ptr<RemoteInterface> creator)
-        {
-          return std::shared_ptr<TrackedDataReceiver>(
-                  new TrackedDataReceiver(ip_address, port, stream, creator));
-        }
-
-        virtual ~TrackedDataReceiver()
-        {
-          try
-          {
-            _creator->deleteDestinationFromStream(_stream, _dest);
-          }
-          catch (std::exception &e)
-          {
-            std::cerr
-                    << "[TrackedDataReceiver] Could not remove my destination "
-                    << _dest << " for stream type " << _stream
-                    << " from rc_visard: "
-                    << e.what() << std::endl;
-          }
-        }
-
-      protected:
-
-        TrackedDataReceiver(const std::string &ip_address, unsigned int &port,
-                            const std::string &stream,
-                            std::shared_ptr<RemoteInterface> creator)
-                : DataReceiver<ProtobufType>(ip_address, port)
-        {
-          _dest = ip_address + ":" + std::to_string(port);
-          _stream = stream;
-          _creator = creator;
-        }
-
-        std::string _dest, _stream;
-        std::shared_ptr<RemoteInterface> _creator;
-    };
 
     static std::map<std::string, RemoteInterface::Ptr> _remoteInterfaces;
 
@@ -269,11 +185,12 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
                     unsigned int requestsTimeout = 5000);
 
     void cleanUpRequestedStreams();
-    void checkStreamTypeAvailable(const std::string& type);
+    void checkStreamTypeAvailable(const std::string& stream);
 
     std::string _visardAddrs;
     std::map<std::string, std::list<std::string>> _reqStreams;
-    std::map<std::string, std::string> _availStreams;
+    std::list<std::string> _availStreams;
+    std::map<std::string, std::string> _protobufMap;
     std::string _baseUrl;
     int _timeoutCurl;
 };

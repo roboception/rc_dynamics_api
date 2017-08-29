@@ -23,6 +23,7 @@ namespace rcdyn = rc::dynamics;
 static bool caught_signal = false;
 void signal_callback_handler(int signum)
 {
+  printf("Caught signal %d, stopping program!\n",signum);
   caught_signal = true;
 }
 
@@ -32,11 +33,11 @@ void signal_callback_handler(int signum)
  */
 void printUsage(char *arg)
 {
-  cout << "\nRequests a pose stream from the specified rc_visard IP "
-          "\nand prints received poses to std out."
+  cout << "\nRequests a data stream from the specified rc_visard IP "
+          "\nand simply prints received data to std out."
        << "\n\nUsage: \n\t"
        << arg
-       << " -v rcVisardIP [-i networkInterface][-m maxNumPoses]"
+       << " -v rcVisardIP -s stream [-i networkInterface][-n numMessages]"
        << endl;
 }
 
@@ -51,15 +52,20 @@ int main(int argc, char *argv[])
   /**
    * Parse program options (e.g. IP, desired interface for receiving data, ...)
    */
-  string ip_str, ifa_str = "";
-  unsigned int maxNumRecordingPoses = 50, cnt = 0;
+  string ip_str, ifa_str = "", type_str = "";
+  unsigned int maxNumMsgs = 50, cnt = 0;
   bool userSetIp = false;
+  bool userSetStreamType = false;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hm:v:i:")) != -1)
+  while ((opt = getopt(argc, argv, "hn:v:i:s:")) != -1)
   {
     switch (opt)
     {
+      case 's': // stream type
+        type_str = string(optarg);
+        userSetStreamType = true;
+        break;
       case 'i':
         ifa_str = string(optarg);
         break;
@@ -67,8 +73,8 @@ int main(int argc, char *argv[])
         ip_str = string(optarg);
         userSetIp = true;
         break;
-      case 'm':
-        maxNumRecordingPoses = (unsigned int) max(0, atoi(optarg));
+      case 'n':
+        maxNumMsgs = (unsigned int) max(0, atoi(optarg));
         break;
       case 'h':
         printUsage(argv[0]);
@@ -84,6 +90,12 @@ int main(int argc, char *argv[])
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
+  if (!userSetStreamType)
+  {
+    cerr << "Please specify stream type." << endl;
+    printUsage(argv[0]);
+    return EXIT_FAILURE;
+  }
 
 
   /**
@@ -96,7 +108,7 @@ int main(int argc, char *argv[])
   {
     // start the rc::dynamics module on the rc_visard
     cout << "starting rc_dynamics module on rc_visard..." << endl;
-    rcdynInterface->start(false);
+    rcdynInterface->start();
   }
   catch (exception &e)
   {
@@ -107,19 +119,20 @@ int main(int argc, char *argv[])
 
   try
   {
-    // easy-to-use creation of a pose receiver
-    cout << "creating receiver and waiting for first messages to arrive..." << endl;
-    auto receiver = rcdynInterface->createReceiverForStream<rcdyn::RemoteInterface::PoseType>(
-            "pose", ifa_str);
+    // easy-to-use creation of a data receiver, parameterized via stream type
+    cout << "creating receiver and waiting for first messages to arrive..."
+         << endl;
+    auto receiver = rcdynInterface->createReceiverForStream(type_str, ifa_str);
     receiver->setTimeout(250);
 
-    // receive poses and print them
-    for (; cnt < maxNumRecordingPoses && !caught_signal; ++cnt)
+    // receive rc_dynamics proto msgs and print them
+    for (; cnt < maxNumMsgs && !caught_signal; ++cnt)
     {
-      shared_ptr<rcdyn::RemoteInterface::PoseType> pose = receiver->receive();
-      if (pose)
+      auto msg = receiver->receive(
+              rcdynInterface->getProtobufTypeOfStream(type_str));
+      if (msg)
       {
-        cout << "received pose " << endl << pose->DebugString() << endl;
+        cout << "received msg " << endl << msg->DebugString() << endl;
       }
     }
   }
@@ -143,6 +156,6 @@ int main(int argc, char *argv[])
          << e.what() << endl;
   }
 
-  cout << "Received  " << cnt << " poses." << endl;
+  cout << "Received  " << cnt << " " << type_str << " messages." << endl;
   return EXIT_SUCCESS;
 }

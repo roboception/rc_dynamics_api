@@ -54,14 +54,66 @@ void handleCPRResponse(cpr::Response r)
 {
   if (r.status_code != 200)
   {
-    throw std::runtime_error(toString(r));
+    throw runtime_error(toString(r));
   }
 }
 
+
+/**
+ * Class for data stream receivers that are created by this
+ * remote interface in order to keep track of created streams.
+ *
+ * @tparam ProtobufType
+ */
+class TrackedDataReceiver : public DataReceiver
+{
+  public:
+
+    static shared_ptr<TrackedDataReceiver>
+    create(const string &ip_address, unsigned int &port,
+           const string &stream,
+           shared_ptr<RemoteInterface> creator)
+    {
+      return shared_ptr<TrackedDataReceiver>(
+              new TrackedDataReceiver(ip_address, port, stream, creator));
+    }
+
+    virtual ~TrackedDataReceiver()
+    {
+      try
+      {
+        _creator->deleteDestinationFromStream(_stream, _dest);
+      }
+      catch (exception &e)
+      {
+        cerr
+                << "[TrackedDataReceiver] Could not remove my destination "
+                << _dest << " for stream type " << _stream
+                << " from rc_visard: "
+                << e.what() << endl;
+      }
+    }
+
+  protected:
+
+    TrackedDataReceiver(const string &ip_address, unsigned int &port,
+                        const string &stream,
+                        shared_ptr<RemoteInterface> creator)
+            : DataReceiver(ip_address, port),
+              _dest(ip_address + ":" + to_string(port)),
+              _stream(stream),
+              _creator(creator)
+    {}
+
+    string _dest, _stream;
+    shared_ptr<RemoteInterface> _creator;
+};
+
+// map to store already created RemoteInterface objects
 map<string, RemoteInterface::Ptr> RemoteInterface::_remoteInterfaces = map<string,RemoteInterface::Ptr>();
 
 RemoteInterface::Ptr
-RemoteInterface::create(const std::string &rcVisardInetAddrs,
+RemoteInterface::create(const string &rcVisardInetAddrs,
                         unsigned int requestsTimeout)
 {
   // check if interface is already opened
@@ -80,30 +132,21 @@ RemoteInterface::create(const std::string &rcVisardInetAddrs,
 }
 
 
-RemoteInterface::RemoteInterface(const std::string &rcVisardIP,
+RemoteInterface::RemoteInterface(const string &rcVisardIP,
                                  unsigned int requestsTimeout) :
         _visardAddrs(rcVisardIP),
         _baseUrl("http://" + _visardAddrs + "/api/v1"),
         _timeoutCurl(requestsTimeout)
 {
   _reqStreams.clear();
-  _availStreams.clear();
+  _protobufMap.clear();
 
-  // use inet_pton to check if given string is a valid IP address
-  struct sockaddr_in sa;
-  int r = inet_pton(AF_INET, rcVisardIP.c_str(), &(sa.sin_addr));
-  if (r == 0)
+  // check if given string is a valid IP address
+  if (!isValidIPAddress(rcVisardIP))
   {
-    throw std::invalid_argument("Given IP address is not a valid address: "
-                                + rcVisardIP);
-  } else if (r == -1)
-  {
-    std::stringstream msg;
-    msg << "Error while checking validity of IP address " << rcVisardIP
-        << ": errno " << errno;
-    throw std::invalid_argument(msg.str());
+    throw invalid_argument("Given IP address is not a valid address: "
+                           + rcVisardIP);
   }
-
 
   // initial connection to rc_visard and get streams, i.e. do get request on
   // respective url (no parameters needed for this simple service call)
@@ -114,7 +157,8 @@ RemoteInterface::RemoteInterface(const std::string &rcVisardIP,
   // parse text of response into json object
   auto j = json::parse(get.text);
   for (auto& stream : j) {
-    _availStreams[stream["name"]] = stream["protobuf"];
+    _availStreams.push_back(stream["name"]);
+    _protobufMap[stream["name"]] = stream["protobuf"];
   }
 }
 
@@ -170,21 +214,37 @@ RemoteInterface::State RemoteInterface::getState()
 
   // parse text of response into json object
   auto j = json::parse(get.text);
-  if (j["status"].get<std::string>() == "running")
+  if (j["status"].get<string>() == "running")
     return State::RUNNING;
   else
     return State::STOPPED;
 }
 
-
-list<string> RemoteInterface::getDestinationsOfStream(const string &type)
+list<string> RemoteInterface::getAvailableStreams()
 {
-  checkStreamTypeAvailable(type);
+  return _availStreams;
+}
+
+/**
+ * Returns the protobuf type used to serialize the data for a given stream
+ * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
+ * @return the corresponding protobuf type as string (e.g. "Frame" or "Dynamics")
+ */
+string RemoteInterface::getProtobufTypeOfStream(const string &stream)
+{
+  checkStreamTypeAvailable(stream);
+  return _protobufMap[stream];
+}
+
+
+list<string> RemoteInterface::getDestinationsOfStream(const string &stream)
+{
+  checkStreamTypeAvailable(stream);
 
   list<string> destinations;
 
   // do get request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + stream};
   auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(get);
 
@@ -198,38 +258,86 @@ list<string> RemoteInterface::getDestinationsOfStream(const string &type)
 }
 
 
-void RemoteInterface::addDestinationToStream(const string &type,
+void RemoteInterface::addDestinationToStream(const string &stream,
                                              const string &destination)
 {
-  checkStreamTypeAvailable(type);
+  checkStreamTypeAvailable(stream);
 
   // do put request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + stream};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl},
                       cpr::Parameters{{"destination", destination}});
   handleCPRResponse(put);
 
   // keep track of added destinations
-  _reqStreams[type].push_back(destination);
+  _reqStreams[stream].push_back(destination);
 }
 
 
-void RemoteInterface::deleteDestinationFromStream(const string &type,
+void RemoteInterface::deleteDestinationFromStream(const string &stream,
                                                   const string &destination)
 {
-  checkStreamTypeAvailable(type);
+  checkStreamTypeAvailable(stream);
 
   // do delete request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + type};
+  cpr::Url url = cpr::Url{_baseUrl + "/datastreams/" + stream};
   auto del = cpr::Delete(url, cpr::Timeout{_timeoutCurl},
                          cpr::Parameters{{"destination", destination}});
   handleCPRResponse(del);
 
   // delete destination also from list of requested streams
-  auto& destinations = _reqStreams[type];
+  auto& destinations = _reqStreams[stream];
   auto found = find(destinations.begin(), destinations.end(), destination);
   if (found != destinations.end())
     destinations.erase(found);
+}
+
+
+DataReceiver::Ptr
+RemoteInterface::createReceiverForStream(const string &stream,
+                                         const string &destInterface,
+                                         unsigned int destPort)
+{
+  checkStreamTypeAvailable(stream);
+
+  // figure out local inet address for streaming
+  string destAddress;
+  if (!getThisHostsIP(destAddress, _visardAddrs, destInterface))
+  {
+    stringstream msg;
+    msg << "Could not infer a valid IP address "
+            "for this host as the destination of the stream! "
+            "Given network interface specification was '" << destInterface
+        << "'.";
+    throw invalid_argument(msg.str());
+  }
+
+  // create data receiver with port as specified
+  DataReceiver::Ptr receiver = TrackedDataReceiver::create(destAddress,
+                                                           destPort, stream,
+                                                           shared_from_this());
+
+  // do REST-API call requesting a UDP stream from rc_visard device
+  string destination = destAddress + ":" + to_string(destPort);
+  addDestinationToStream(stream, destination);
+
+  // waiting for first message; we set a long timeout for receiving data
+  unsigned int initialTimeOut = 5000;
+  receiver->setTimeout(initialTimeOut);
+  if (!receiver->receive(_protobufMap[stream]))
+  {
+    stringstream msg;
+    msg << "Did not receive any data within the last "
+        << initialTimeOut << " ms. "
+        << "Either rc_visard does not seem to send the data properly "
+                "(is rc_dynamics module running?) or you seem to have serious "
+                "network/connection problems!";
+    throw runtime_error(msg.str());
+  }
+
+  // stream established, prepare everything for normal pose receiving
+  receiver->setTimeout(100);
+  return receiver;
 }
 
 
@@ -244,7 +352,7 @@ void RemoteInterface::cleanUpRequestedStreams()
     {
       rcVisardsActiveStreams = getDestinationsOfStream(s.first);
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
       cerr << "[RemoteInterface] Could not get list of active " << s.first
            << " streams for cleaning up previously requested streams: "
@@ -260,7 +368,7 @@ void RemoteInterface::cleanUpRequestedStreams()
       {
         try {
           deleteDestinationFromStream(s.first, activeStream);
-        } catch (std::exception &e) {
+        } catch (exception &e) {
           cerr << "[RemoteInterface] Could not delete destination "
                << activeStream << " from " << s.first << " stream: "
                << e.what() << endl;
@@ -271,12 +379,12 @@ void RemoteInterface::cleanUpRequestedStreams()
   }
 }
 
-void RemoteInterface::checkStreamTypeAvailable(const std::string& type) {
-  auto found = _availStreams.find(type);
-  if (found == _availStreams.end())
+void RemoteInterface::checkStreamTypeAvailable(const string& stream) {
+  auto found = _protobufMap.find(stream);
+  if (found == _protobufMap.end())
   {
     stringstream msg;
-    msg << "Stream of type '" << type << "' is not available on rc_visard "
+    msg << "Stream of type '" << stream << "' is not available on rc_visard "
         << _visardAddrs;
     throw invalid_argument(msg.str());
   }

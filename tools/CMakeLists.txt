@@ -35,7 +35,7 @@ project(tools CXX)
 
 # build programs
 
-add_executable(vins_stream vins_stream.cc)
+add_executable(vins_stream rcdynamics_stream.cc)
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/../rc_dynamics_api)
 target_link_libraries(vins_stream rc_dynamics_api_static ${PROTOBUF_LIBRARIES})
 

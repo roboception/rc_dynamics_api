@@ -50,8 +50,15 @@ bool isIPInRange(const std::string ip, const std::string network, const std::str
  * @return true if valid IP address was found among network interfaces
  */
 bool getThisHostsIP(std::string &thisHostsIP,
-                    std::string otherHostsIP = "",
-                    std::string networkInterface = "");
+                    const std::string &otherHostsIP = "",
+                    const std::string &networkInterface = "");
+
+/**
+ * Checks if given string is a valid IP address
+ * @param ip IP address to be checked
+ * @return true if valid
+ */
+bool isValidIPAddress(const std::string &ip);
 
 }
 

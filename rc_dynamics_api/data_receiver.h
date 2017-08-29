@@ -22,22 +22,32 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#include "net_utils.h"
+
+#include "roboception/msgs/frame.pb.h"
+#include "roboception/msgs/dynamics.pb.h"
+#include "roboception/msgs/imu.pb.h"
+
 namespace rc
 {
 namespace dynamics
 {
 
-template<class ProtobufType>
+
+/**
+ * A simple receiver object for handling data streamed by rc_visard's
+ * rc_dynamics module.
+ */
 class DataReceiver
-        : public std::enable_shared_from_this<DataReceiver<ProtobufType>>
+        : public std::enable_shared_from_this<DataReceiver>
 {
   public:
 
     using Ptr = std::shared_ptr<DataReceiver>;
 
     /**
-     * Creates a data receiver of specific data type bound to the user-given
-     * IP address and port number.
+     * Creates a data receiver bound to the user-given IP address and port
+     * number.
      *
      * For binding to an arbitrary port, the given port number might be 0. In
      * this case, the actually chosen port number is returned.
@@ -77,13 +87,20 @@ class DataReceiver
 
 
     /**
-     * Receives the next item from data stream. This method blocks until the
-     * next data is available or when it runs into user-specified timeout (see
-     * setTimeout(...)).
+     * Receives the next item from data stream (template-parameter version)
      *
-     * @return a valid rc_dynamics data from the stream, or NULL if timeout
+     * This method blocks until the next data is available and returns it as
+     * specified by the template parameter ProtobufType, or when it runs into
+     * user-specified timeout (see setTimeout(...)).
+     *
+     * NOTE: The specified ProtobufType *must match* the type with which the
+     * received data was serialized during sending. Otherwise it will result in
+     * undefined behaviour!
+     *
+     * @return a rc_dynamics data as ProtobufType from the stream, or NULL if timeout
      */
-    virtual std::shared_ptr<ProtobufType> receive()
+    template<class ProtobufType>
+    std::shared_ptr<ProtobufType> receive()
     {
       // receive msg from socket; blocking call (timeout)
       int msg_size = TEMP_FAILURE_RETRY(
@@ -94,7 +111,7 @@ class DataReceiver
         if (e == EAGAIN || e == EWOULDBLOCK)
         {
           // timeouts are allowed to happen, then return NULL pointer
-          return NULL;
+          return nullptr;
         }
         else
         {
@@ -109,11 +126,45 @@ class DataReceiver
       return protoObj;
     }
 
+    /**
+     * Receives the next item from data stream (string-parameter version)
+     *
+     * This method blocks until the next data is available and returns it
+     * deserialized as specified with the protobuf parameter as a message base
+     * class pointer, or when it runs into user-specified timeout
+     * (see setTimeout(...)).
+     *
+     * NOTE: The specified ProtobufType *must match* the type with which the
+     * received data was serialized during sending. Otherwise it will result in
+     * undefined behaviour!
+     *
+     * @return a rc_dynamics data as protobuf from the stream, or NULL if timeout
+     */
+    virtual std::shared_ptr<::google::protobuf::Message> receive(const std::string &protobuf)
+    {
+      auto found = _recv_func_map.find(protobuf);
+      if (found == _recv_func_map.end())
+      {
+        std::stringstream msg;
+        msg << "Unsupported protobuf type '" << protobuf
+            << "'. Only the following types are supported: ";
+        for (auto const &p : _recv_func_map) msg << p.first << " ";
+        throw std::invalid_argument(msg.str());
+      }
+      return _recv_func_map[protobuf]();
+    }
 
   protected:
 
     DataReceiver(std::string ip_address, unsigned int &port)
     {
+      // check if given string is a valid IP address
+      if (!rc::isValidIPAddress(ip_address))
+      {
+        throw std::invalid_argument("Given IP address is not a valid address: "
+                               + ip_address);
+      }
+
       // may result in weird errors when not initialized properly
       _recvtimeout.tv_sec = 0;
       _recvtimeout.tv_usec = 1000 * 10;
@@ -155,11 +206,22 @@ class DataReceiver
         }
         port = ntohs(myaddr.sin_port);
       }
+
+      // register all known protobuf types
+      _recv_func_map[roboception::msgs::Frame::descriptor()->name()] = std::bind(
+              &DataReceiver::receive<roboception::msgs::Frame>, this);
+      _recv_func_map[roboception::msgs::Imu::descriptor()->name()] = std::bind(
+              &DataReceiver::receive<roboception::msgs::Imu>, this);
+      _recv_func_map[roboception::msgs::Dynamics::descriptor()->name()] = std::bind(
+              &DataReceiver::receive<roboception::msgs::Dynamics>, this);
     }
 
     int _sockfd;
     struct timeval _recvtimeout;
     char _buffer[512];
+
+    typedef std::map<std::string, std::function<std::shared_ptr<::google::protobuf::Message>()>> map_type;
+    map_type _recv_func_map;
 };
 
 }
