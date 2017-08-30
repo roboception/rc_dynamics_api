@@ -35,10 +35,10 @@ project(tools CXX)
 
 # build programs
 
-add_executable(vins_stream rcdynamics_stream.cc)
+add_executable(rcdynamics_stream rcdynamics_stream.cc)
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/../rc_dynamics_api)
-target_link_libraries(vins_stream rc_dynamics_api_static ${PROTOBUF_LIBRARIES})
+target_link_libraries(rcdynamics_stream rc_dynamics_api_static ${PROTOBUF_LIBRARIES})
 
 # install tools
 
-install(TARGETS vins_stream COMPONENT bin DESTINATION bin)
+install(TARGETS rcdynamics_stream COMPONENT bin DESTINATION bin)
