@@ -261,17 +261,21 @@ int main(int argc, char *argv[])
   cout << "connecting rc_visard " << ip_str << "..." << endl;
   auto dyn = RemoteInterface::create(ip_str);
 
-  try
+  /* For all streams except 'imu' the rc_dynamcis node has to be started */
+  if (type_str != "imu")
   {
-    // start the rc::dynamics module on the rc_visard
-    cout << "starting rc_dynamics module on rc_visard..." << endl;
-    dyn->start();
-  }
-  catch (exception &e)
-  {
-    cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-         << e.what() << endl;
-    return EXIT_FAILURE;
+    try
+    {
+      // start the rc::dynamics module on the rc_visard
+      cout << "starting rc_dynamics module on rc_visard..." << endl;
+      dyn->start();
+    }
+    catch (exception &e)
+    {
+      cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
+          << e.what() << endl;
+      return EXIT_FAILURE;
+    }
   }
 
   /**
@@ -326,16 +330,19 @@ int main(int argc, char *argv[])
 
   /**
    * Stopping streaming and clean-up
+   * 'imu' stream works regardless if the rc_dynamics module is running, so no need to stop it
    */
-  try
+  if (type_str != "imu")
   {
-    cout << "stopping rc_dynamics module on rc_visard..." << endl;
-    dyn->stop();
-
-  }
-  catch (exception &e)
-  {
-    cout << "Caught exception: " << e.what() << endl;
+    try
+    {
+      cout << "stopping rc_dynamics module on rc_visard..." << endl;
+      dyn->stop();
+    }
+    catch (exception &e)
+    {
+      cout << "Caught exception: " << e.what() << endl;
+    }
   }
 
   if (outputFile.is_open())
