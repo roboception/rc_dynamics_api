@@ -190,7 +190,7 @@ void RemoteInterface::start(bool flagRestart)
   // do put request on respective url (no parameters needed for this simple service call)
   string serviceToCall = (flagRestart) ? "restart" : "start";
   cpr::Url url = cpr::Url{
-          _baseUrl + "/nodes/rc_stereo_ins/services/" + serviceToCall};
+          _baseUrl + "/nodes/rc_dynamics/services/" + serviceToCall};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
 }
@@ -199,7 +199,7 @@ void RemoteInterface::start(bool flagRestart)
 void RemoteInterface::stop()
 {
   // do put request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_stereo_ins/services/stop"};
+  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/services/stop"};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
 }
@@ -208,7 +208,7 @@ void RemoteInterface::stop()
 RemoteInterface::State RemoteInterface::getState()
 {
   // do get request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_stereo_ins/status"};
+  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/status"};
   auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(get);
 
