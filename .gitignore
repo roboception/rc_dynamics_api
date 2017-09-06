@@ -4,9 +4,6 @@ cmake-build-debug/
 *~
 *.swp
 
-.idea
-*.cproject
-*.project
-*.externalToolBuilders
-.settings
-.metadata
+.*
+!.gitignore
+!.gitlab-ci.yml
