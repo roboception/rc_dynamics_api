@@ -64,17 +64,19 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 # List of absolute file names to each proto file
 SET(PROTOS)
 
+SET(RC_DYNAMICS_MSGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/rc_dynamics_msgs")
+
 # find all proto files relative to this source dir
-FILE(GLOB_RECURSE PROTOS_REL RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/roboception/msgs/[^._]*.proto")
+FILE(GLOB_RECURSE PROTOS_REL RELATIVE "${RC_DYNAMICS_MSGS_DIR}"
+        "${RC_DYNAMICS_MSGS_DIR}/roboception/msgs/[^._]*.proto")
 
 # find all proto files, store them in a list for later processing, and copy them to the binary dir
 FOREACH(FILE ${PROTOS_REL})
     SET(OUT "${CMAKE_CURRENT_BINARY_DIR}/${FILE}")
     ADD_CUSTOM_COMMAND(
             OUTPUT ${OUT}
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${FILE}" "${OUT}"
-            DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${FILE}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${RC_DYNAMICS_MSGS_DIR}/${FILE}" "${OUT}"
+            DEPENDS "${RC_DYNAMICS_MSGS_DIR}/${FILE}"
             COMMENT "Copying proto file ${FILE} to binary dir")
     LIST(APPEND PROTOS "${OUT}")
 ENDFOREACH()
