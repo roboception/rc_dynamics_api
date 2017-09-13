@@ -84,7 +84,7 @@ ENDFOREACH()
 ADD_CUSTOM_TARGET("protos" DEPENDS ${PROTOS} )
 
 # define the root, now in the build tree, for later processing
-set(PROTO_ROOT "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
+set(PROTO_ROOT "${CMAKE_CURRENT_BINARY_DIR}")
 
 # generate the cpp files from protos
 PROTOBUF_GENERATE(CPP PROTO_SRC PROTO_HEADER
