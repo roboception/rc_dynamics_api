@@ -91,8 +91,10 @@ set(PROJECT_LIBRARIES rc_dynamics_api)
 include(cmake/configure_link_libs.cmake)
 
 # add a target to generate API documentation with Doxygen
-
-add_subdirectory(doc)
+option(BUILD_DOC "Add target for building doxygen docs" ON)
+if (BUILD_DOC)
+  add_subdirectory(doc)
+endif()
 
 # - Define information for packaging -
 
