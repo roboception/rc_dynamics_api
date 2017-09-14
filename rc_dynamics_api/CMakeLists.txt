@@ -119,10 +119,18 @@ set(hh
 add_library(rc_dynamics_api_static STATIC ${src})
 target_link_libraries(rc_dynamics_api_static ${CPR_LIBRARIES} ${PROTOLIBNAME})
 
-add_library(rc_dynamics_api SHARED ${src})
-target_link_libraries(rc_dynamics_api LINK_PRIVATE ${CPR_LIBRARIES} ${PROTOLIBNAME})
-set_target_properties(rc_dynamics_api PROPERTIES SOVERSION ${abiversion})
+# install(TARGETS rc_dynamics_api_static EXPORT PROJECTTargets COMPONENT dev DESTINATION lib)
 
-install(TARGETS rc_dynamics_api EXPORT PROJECTTargets COMPONENT bin DESTINATION lib)
-install(FILES ${hh} COMPONENT dev DESTINATION include/rc_dynamics_api)
-install(FILES ${PROTO_HEADER} COMPONENT dev DESTINATION include/roboception/msgs)
+if (BUILD_SHARED_LIBS)
+    add_library(rc_dynamics_api SHARED ${src})
+    target_link_libraries(rc_dynamics_api LINK_PRIVATE ${CPR_LIBRARIES} ${PROTOLIBNAME})
+    set_target_properties(rc_dynamics_api PROPERTIES SOVERSION ${abiversion})
+
+    install(TARGETS rc_dynamics_api EXPORT PROJECTTargets COMPONENT bin DESTINATION lib)
+endif ()
+
+# only install headers if we build and install the shared lib
+if (BUILD_SHARED_LIBS)
+    install(FILES ${hh} COMPONENT dev DESTINATION include/rc_dynamics_api)
+    install(FILES ${PROTO_HEADER} COMPONENT dev DESTINATION include/roboception/msgs)
+endif ()

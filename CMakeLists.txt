@@ -44,7 +44,7 @@ include(cmake/project_version.cmake)
 
 enable_testing()
 
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # - Find manditory packages
 
@@ -65,8 +65,10 @@ add_definitions(-std=c++11)
 
 # - Build individual parts -
 
+option(BUILD_DOC "Add target for building doxygen docs" ON)
 option(BUILD_EXAMPLES "Build test programs" ON)
 option(BUILD_TOOLS "Build commandline tools" ON)
+option(BUILD_SHARED_LIBS "Build shared libs" ON)
 
 add_subdirectory(rc_dynamics_api)
 if (BUILD_TOOLS)
@@ -82,19 +84,19 @@ endif()
 # libraries that appear here, the following line should exist in a cmake
 # file in a sub directory:
 # install(TARGETS rcXXX EXPORT PROJECTTargets COMPONENT bin DESTINATION lib)
-set(PROJECT_LIBRARIES rc_dynamics_api)
+if (BUILD_SHARED_LIBS)
+  set(PROJECT_LIBRARIES rc_dynamics_api)
+endif ()
 
 # Declare static libraries that are created by your project. For all
 # libraries that appear here, the following line should exist in a cmake
 # file in a sub directory:
 # install(TARGETS rcXXX_static EXPORT PROJECTTargets COMPONENT dev DESTINATION lib)
-#set(PROJECT_STATIC_LIBRARIES rcvinsapi_static)
+#set(PROJECT_STATIC_LIBRARIES rc_dynamics_api_static)
 
-# comment the following line if your project does not provide any library
 include(cmake/configure_link_libs.cmake)
 
 # add a target to generate API documentation with Doxygen
-option(BUILD_DOC "Add target for building doxygen docs" ON)
 if (BUILD_DOC)
   add_subdirectory(doc)
 endif()
