@@ -19,6 +19,10 @@ set(BUILD_CPR_TESTS OFF CACHE BOOL "Don't build cpr tests")
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# unset version variables
+unset(PROJECT_VERSION)
+unset(PACKAGE_VERSION)
+
 ## check for curl being available in system already
 find_package(CURL)
 if(CURL_FOUND)
