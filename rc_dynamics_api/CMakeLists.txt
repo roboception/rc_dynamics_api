@@ -108,12 +108,14 @@ TARGET_LINK_LIBRARIES(${PROTOLIBNAME}
 set(src
     net_utils.cc
     remote_interface.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/project_version.cc
 )
 
 set(hh
     net_utils.h
     remote_interface.h
     data_receiver.h
+    ${CMAKE_CURRENT_BINARY_DIR}/project_version.h
 )
 
 add_library(rc_dynamics_api_static STATIC ${src})
