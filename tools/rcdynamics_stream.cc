@@ -38,6 +38,7 @@
 #include <fstream>
 #include <signal.h>
 #include <chrono>
+#include <iomanip>
 
 using namespace std;
 using namespace rc::dynamics;
@@ -181,12 +182,12 @@ void signal_callback_handler(int signum)
  */
 void printUsage(char *arg)
 {
-  cout << "\nRequests a data stream from the specified rc_visard IP "
-          "\nand either prints received messages, or records them as csv-file, "
-          "\nsee -o option)."
+  cout << "\nLists available rcdynamics data streams of the specified rc_visard IP, "
+          "\nor requests a data stream and either prints received messages or records "
+          "\nthem as csv-file, see -o option."
        << "\n\nUsage: \n\t"
        << arg
-       << " -v rcVisardIP -s stream [-i networkInterface]"
+       << " -v rcVisardIP -l | -s stream [-i networkInterface]"
           "\n\t\t[-n maxNumData][-t maxRecTimeSecs][-o outputFile]"
        << endl;
 }
@@ -209,12 +210,16 @@ int main(int argc, char *argv[])
   bool userSetRecordingTime = false;
   bool userSetIp = false;
   bool userSetStreamType = false;
+  bool onlyListStreams = false;
 
   int opt;
-  while ((opt = getopt(argc, argv, "hn:v:i:o:t:s:")) != -1)
+  while ((opt = getopt(argc, argv, "hln:v:i:o:t:s:")) != -1)
   {
     switch (opt)
     {
+      case 'l':
+        onlyListStreams = true;
+        break;
       case 's': // stream type(s)
         type_str = string(optarg);
         userSetStreamType = true;
@@ -252,7 +257,7 @@ int main(int argc, char *argv[])
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
-  if (!userSetStreamType)
+  if (!userSetStreamType && !onlyListStreams)
   {
     cerr << "Please specify stream type." << endl;
     printUsage(argv[0]);
@@ -284,6 +289,19 @@ int main(int argc, char *argv[])
    */
   cout << "connecting rc_visard " << ip_str << "..." << endl;
   auto dyn = RemoteInterface::create(ip_str);
+
+  /* Only list available streams of device and exit */
+  if (onlyListStreams)
+  {
+    auto streams = dyn->getAvailableStreams();
+    cout << "available streams: stream name (protobuf message name)" << endl;
+    for (const auto& s : streams)
+    {
+      cout << setw(15) << s << "  (" << dyn->getPbMsgNameOfStream(s) << ")" << endl;
+    }
+    cout << endl;
+    return EXIT_SUCCESS;
+  }
 
   /* For all streams except 'imu' the rc_dynamcis node has to be started */
   if (type_str != "imu")
