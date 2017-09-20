@@ -71,9 +71,9 @@ namespace dynamics
  *  NOTE: For convenience, a RemoteInterface object automatically keeps track
  *      of all data stream destinations requested by itself on the rc_visard
  *      device, and deletes them again when it is going to be destructed.
- *      Therefore, it is highly important that a RemoteInterface is desctucted
+ *      Therefore, it is highly important that a RemoteInterface is destructed
  *      properly.
- *      In order to do so it, is highly recommended to wrap method calls of
+ *      In order to do so it, is recommended to wrap method calls of
  *      RemoteInterface objects with try-catch-blocks as they might throw
  *      exceptions and therefore avoid proper destruction of the object.
  */
@@ -127,11 +127,14 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     std::list<std::string> getAvailableStreams();
 
     /**
-     * Returns the protobuf type used to serialize the data for a given stream
+     * Returns the name of the protobuf message class that corresponds to a
+     * given data stream and is required for de-serializing the respective
+     * messages.
+     *
      * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
      * @return the corresponding protobuf type as string (e.g. "Frame" or "Dynamics")
      */
-    std::string getProtobufTypeOfStream(const std::string &stream);
+    std::string getPbMsgNameOfStream(const std::string &stream);
 
 
     /**

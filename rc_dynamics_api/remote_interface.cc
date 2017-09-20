@@ -253,7 +253,7 @@ list<string> RemoteInterface::getAvailableStreams()
  * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
  * @return the corresponding protobuf type as string (e.g. "Frame" or "Dynamics")
  */
-string RemoteInterface::getProtobufTypeOfStream(const string &stream)
+string RemoteInterface::getPbMsgNameOfStream(const string &stream)
 {
   checkStreamTypeAvailable(stream);
   return _protobufMap[stream];

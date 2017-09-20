@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
     for (; cnt < maxNumMsgs && !caught_signal; ++cnt)
     {
       auto msg = receiver->receive(
-              rcdynInterface->getProtobufTypeOfStream(type_str));
+              rcdynInterface->getPbMsgNameOfStream(type_str));
       if (msg)
       {
         cout << "received msg " << endl << msg->DebugString() << endl;

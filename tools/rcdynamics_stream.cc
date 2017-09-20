@@ -323,13 +323,13 @@ int main(int argc, char *argv[])
                elapsedSecs.count() < maxRecordingTimeSecs)
             )
     {
-      auto msg = receiver->receive(dyn->getProtobufTypeOfStream(type_str));
+      auto msg = receiver->receive(dyn->getPbMsgNameOfStream(type_str));
       if (msg)
       {
         ++cntMsgs;
         if (outputFile.is_open())
         {
-          csv.print(dyn->getProtobufTypeOfStream(type_str), msg.get(), outputFile);
+          csv.print(dyn->getPbMsgNameOfStream(type_str), msg.get(), outputFile);
         }
         else
         {
