@@ -86,7 +86,6 @@ void handleCPRResponse(cpr::Response r)
  * Class for data stream receivers that are created by this
  * remote interface in order to keep track of created streams.
  *
- * @tparam ProtobufType
  */
 class TrackedDataReceiver : public DataReceiver
 {
@@ -179,7 +178,7 @@ RemoteInterface::RemoteInterface(const string &rcVisardIP,
 
   // parse text of response into json object
   auto j = json::parse(get.text);
-  for (auto& stream : j) {
+  for (const auto& stream : j) {
     _availStreams.push_back(stream["name"]);
     _protobufMap[stream["name"]] = stream["protobuf"];
   }
@@ -248,12 +247,8 @@ list<string> RemoteInterface::getAvailableStreams()
   return _availStreams;
 }
 
-/**
- * Returns the protobuf type used to serialize the data for a given stream
- * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
- * @return the corresponding protobuf type as string (e.g. "Frame" or "Dynamics")
- */
-string RemoteInterface::getPbMsgNameOfStream(const string &stream)
+
+string RemoteInterface::getPbMsgTypeOfStream(const string &stream)
 {
   checkStreamTypeAvailable(stream);
   return _protobufMap[stream];
@@ -403,8 +398,8 @@ void RemoteInterface::cleanUpRequestedStreams()
 }
 
 void RemoteInterface::checkStreamTypeAvailable(const string& stream) {
-  auto found = _protobufMap.find(stream);
-  if (found == _protobufMap.end())
+  auto found = find(_availStreams.begin(), _availStreams.end(), stream);
+  if (found == _availStreams.end())
   {
     stringstream msg;
     msg << "Stream of type '" << stream << "' is not available on rc_visard "

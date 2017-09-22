@@ -76,8 +76,8 @@ int main(int argc, char *argv[])
   /**
    * Parse program options (e.g. IP, desired interface for receiving data, ...)
    */
-  string ip_str, ifa_str = "", type_str = "";
-  unsigned int maxNumMsgs = 50, cnt = 0;
+  string visardIP, networkIface = "", streamName = "";
+  unsigned int maxNumMsgs = 50, cntMsgs = 0;
   bool userSetIp = false;
   bool userSetStreamType = false;
 
@@ -86,15 +86,15 @@ int main(int argc, char *argv[])
   {
     switch (opt)
     {
-      case 's': // stream type
-        type_str = string(optarg);
+      case 's':
+        streamName = string(optarg);
         userSetStreamType = true;
         break;
       case 'i':
-        ifa_str = string(optarg);
+        networkIface = string(optarg);
         break;
       case 'v':
-        ip_str = string(optarg);
+        visardIP = string(optarg);
         userSetIp = true;
         break;
       case 'n':
@@ -125,14 +125,14 @@ int main(int argc, char *argv[])
   /**
    * Instantiate rc::dynamics::RemoteInterface and start streaming
    */
-  cout << "connecting rc_visard " << ip_str << "..." << endl;
-  auto rcdynInterface = rcdyn::RemoteInterface::create(ip_str);
+  cout << "connecting rc_visard " << visardIP << "..." << endl;
+  auto rcvisardDynamics = rcdyn::RemoteInterface::create(visardIP);
 
   try
   {
     // start the rc::dynamics module on the rc_visard
     cout << "starting rc_dynamics module on rc_visard..." << endl;
-    rcdynInterface->start();
+    rcvisardDynamics->start();
   }
   catch (exception &e)
   {
@@ -146,14 +146,14 @@ int main(int argc, char *argv[])
     // easy-to-use creation of a data receiver, parameterized via stream type
     cout << "creating receiver and waiting for first messages to arrive..."
          << endl;
-    auto receiver = rcdynInterface->createReceiverForStream(type_str, ifa_str);
+    auto receiver = rcvisardDynamics->createReceiverForStream(streamName, networkIface);
     receiver->setTimeout(250);
 
-    // receive rc_dynamics proto msgs and print them
-    for (; cnt < maxNumMsgs && !caught_signal; ++cnt)
+    // receive rc_dynamics protobuf msgs and print them
+    for (; cntMsgs < maxNumMsgs && !caught_signal; ++cntMsgs)
     {
       auto msg = receiver->receive(
-              rcdynInterface->getPbMsgNameOfStream(type_str));
+              rcvisardDynamics->getPbMsgTypeOfStream(streamName));
       if (msg)
       {
         cout << "received msg " << endl << msg->DebugString() << endl;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
   try
   {
     cout << "stopping rc_dynamics module on rc_visard..." << endl;
-    rcdynInterface->stop();
+    rcvisardDynamics->stop();
   }
   catch (exception &e)
   {
@@ -180,6 +180,6 @@ int main(int argc, char *argv[])
          << e.what() << endl;
   }
 
-  cout << "Received  " << cnt << " " << type_str << " messages." << endl;
+  cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;
   return EXIT_SUCCESS;
 }

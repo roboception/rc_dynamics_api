@@ -48,7 +48,7 @@ namespace rcmsgs = roboception::msgs;
 
 
 /**
- * define different printing behaviors - one for each protobuf type
+ * define different printing behaviors - one for each protobuf message type
  */
 template<class T>
 void printAsCsv(const gpb::Message*, ofstream &s);
@@ -142,7 +142,7 @@ class CSVPrinter
   public:
     CSVPrinter()
     {
-      // register printing behaviour for all known protobuf types
+      // register printing behaviour for all known protobuf message types
       printerMap[rcmsgs::Frame::descriptor()->name()] = std::bind(
               &printAsCsv<rcmsgs::Frame>,
               std::placeholders::_1, std::placeholders::_2);
@@ -154,9 +154,9 @@ class CSVPrinter
               std::placeholders::_1, std::placeholders::_2);
     }
 
-    void print(const string& protobufType, const gpb::Message* m, ofstream &s)
+    void print(const string& pbMsgType, const gpb::Message* m, ofstream &s)
     {
-      printerMap[protobufType](m, s);
+      printerMap[pbMsgType](m, s);
       s << endl;
     }
 
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
   /**
    * Parse program options (e.g. IP )
    */
-  string outputFileName, ip_str, ifa_str = "", type_str;
+  string outputFileName, visardIP, networkIface = "", streamName;
   unsigned int maxNumRecordingMsgs = 50, maxRecordingTimeSecs = 5;
   bool userSetOutputFile = false;
   bool userSetMaxNumMsgs = false;
@@ -220,15 +220,15 @@ int main(int argc, char *argv[])
       case 'l':
         onlyListStreams = true;
         break;
-      case 's': // stream type(s)
-        type_str = string(optarg);
+      case 's':
+        streamName = string(optarg);
         userSetStreamType = true;
         break;
       case 'i':
-        ifa_str = string(optarg);
+        networkIface = string(optarg);
         break;
       case 'v':
-        ip_str = string(optarg);
+        visardIP = string(optarg);
         userSetIp = true;
         break;
       case 'n':
@@ -285,32 +285,36 @@ int main(int argc, char *argv[])
   }
 
   /**
-   * Instantiate RemoteInterface and start rc_dynamics module
+   * Instantiate RemoteInterface
    */
-  cout << "connecting rc_visard " << ip_str << "..." << endl;
-  auto dyn = RemoteInterface::create(ip_str);
+  cout << "connecting to rc_visard " << visardIP << "..." << endl;
+  auto rcvisardDynamics = RemoteInterface::create(visardIP);
 
   /* Only list available streams of device and exit */
   if (onlyListStreams)
   {
-    auto streams = dyn->getAvailableStreams();
-    cout << "available streams: stream name (protobuf message name)" << endl;
-    for (const auto& s : streams)
-    {
-      cout << setw(15) << s << "  (" << dyn->getPbMsgNameOfStream(s) << ")" << endl;
-    }
+    auto streams = rcvisardDynamics->getAvailableStreams();
+    string firstColumn = "Available streams:";
+    size_t firstColumnWidth = firstColumn.length();
+    for (auto&& s : streams)
+      if (s.length() > firstColumnWidth)
+        firstColumnWidth = s.length();
+    firstColumnWidth += 5;
+    cout << left << setw(firstColumnWidth) << firstColumn << "Protobuf message types:" << endl;
+    for (auto&& s : streams)
+      cout << left << setw(firstColumnWidth) << s << rcvisardDynamics->getPbMsgTypeOfStream(s) << endl;
     cout << endl;
     return EXIT_SUCCESS;
   }
 
   /* For all streams except 'imu' the rc_dynamcis node has to be started */
-  if (type_str != "imu")
+  if (streamName != "imu")
   {
     try
     {
       // start the rc::dynamics module on the rc_visard
       cout << "starting rc_dynamics module on rc_visard..." << endl;
-      dyn->start();
+      rcvisardDynamics->start();
     }
     catch (exception &e)
     {
@@ -326,12 +330,12 @@ int main(int argc, char *argv[])
   unsigned int cntMsgs = 0;
   try
   {
-    cout << "Initializing " << type_str << " data stream..." << endl;
-    auto receiver = dyn->createReceiverForStream(type_str, ifa_str);
+    cout << "Initializing " << streamName << " data stream..." << endl;
+    auto receiver = rcvisardDynamics->createReceiverForStream(streamName, networkIface);
 
     unsigned int timeoutMillis = 100;
     receiver->setTimeout(timeoutMillis);
-    cout << "Listening for " << type_str << " messages..." << endl;
+    cout << "Listening for " << streamName << " messages..." << endl;
 
     chrono::time_point<chrono::system_clock> start = chrono::system_clock::now();
     chrono::duration<double> elapsedSecs(0);
@@ -341,17 +345,17 @@ int main(int argc, char *argv[])
                elapsedSecs.count() < maxRecordingTimeSecs)
             )
     {
-      auto msg = receiver->receive(dyn->getPbMsgNameOfStream(type_str));
+      auto msg = receiver->receive(rcvisardDynamics->getPbMsgTypeOfStream(streamName));
       if (msg)
       {
         ++cntMsgs;
         if (outputFile.is_open())
         {
-          csv.print(dyn->getPbMsgNameOfStream(type_str), msg.get(), outputFile);
+          csv.print(rcvisardDynamics->getPbMsgTypeOfStream(streamName), msg.get(), outputFile);
         }
         else
         {
-          cout << "received " << type_str << " msg:" << endl
+          cout << "received " << streamName << " msg:" << endl
                << msg->DebugString() << endl;
         }
       }
@@ -374,12 +378,12 @@ int main(int argc, char *argv[])
    * Stopping streaming and clean-up
    * 'imu' stream works regardless if the rc_dynamics module is running, so no need to stop it
    */
-  if (type_str != "imu")
+  if (streamName != "imu")
   {
     try
     {
       cout << "stopping rc_dynamics module on rc_visard..." << endl;
-      dyn->stop();
+      rcvisardDynamics->stop();
     }
     catch (exception &e)
     {
@@ -390,12 +394,12 @@ int main(int argc, char *argv[])
   if (outputFile.is_open())
   {
     outputFile.close();
-    cout << "Recorded " << cntMsgs << " " << type_str << " messages to '"
+    cout << "Recorded " << cntMsgs << " " << streamName << " messages to '"
          << outputFileName << "'." << endl;
   }
   else
   {
-    cout << "Received  " << cntMsgs << " " << type_str << " messages." << endl;
+    cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;
   }
 
   return EXIT_SUCCESS;

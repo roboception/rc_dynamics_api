@@ -110,20 +110,20 @@ class DataReceiver
 
 
     /**
-     * Receives the next item from data stream (template-parameter version)
+     * Receives the next message from data stream (template-parameter version)
      *
-     * This method blocks until the next data is available and returns it as
-     * specified by the template parameter ProtobufType, or when it runs into
+     * This method blocks until the next message is received and returns it as
+     * specified by the template parameter PbMsgType, or when it runs into
      * user-specified timeout (see setTimeout(...)).
      *
-     * NOTE: The specified ProtobufType *must match* the type with which the
+     * NOTE: The specified PbMsgType *must match* the type with which the
      * received data was serialized during sending. Otherwise it will result in
      * undefined behaviour!
      *
-     * @return a rc_dynamics data as ProtobufType from the stream, or NULL if timeout
+     * @return the next rc_dynamics data stream message as PbMsgType, or NULL if timeout
      */
-    template<class ProtobufType>
-    std::shared_ptr<ProtobufType> receive()
+    template<class PbMsgType>
+    std::shared_ptr<PbMsgType> receive()
     {
       // receive msg from socket; blocking call (timeout)
       int msg_size = TEMP_FAILURE_RETRY(
@@ -144,37 +144,37 @@ class DataReceiver
       }
 
       // parse msgs as probobuf
-      auto protoObj = std::shared_ptr<ProtobufType>(new ProtobufType());
-      protoObj->ParseFromArray(_buffer, msg_size);
-      return protoObj;
+      auto pbMsg = std::shared_ptr<PbMsgType>(new PbMsgType());
+      pbMsg->ParseFromArray(_buffer, msg_size);
+      return pbMsg;
     }
 
     /**
-     * Receives the next item from data stream (string-parameter version)
+     * Receives the next message from data stream (string-parameter version)
      *
-     * This method blocks until the next data is available and returns it
-     * deserialized as specified with the protobuf parameter as a message base
-     * class pointer, or when it runs into user-specified timeout
-     * (see setTimeout(...)).
+     * This method blocks until the next message is available and returns it -
+     * de-serialized as specified by the pbMsgType parameter - as a pb::Message
+     * base class pointer, or until it runs into user-specified timeout (see
+     * setTimeout(...)).
      *
-     * NOTE: The specified ProtobufType *must match* the type with which the
+     * NOTE: The specified PbMsgType *must match* the type with which the
      * received data was serialized during sending. Otherwise it will result in
      * undefined behaviour!
      *
-     * @return a rc_dynamics data as protobuf from the stream, or NULL if timeout
+     * @return the next rc_dynamics data stream message as a pb::Message base class pointer, or NULL if timeout
      */
-    virtual std::shared_ptr<::google::protobuf::Message> receive(const std::string &protobuf)
+    virtual std::shared_ptr<::google::protobuf::Message> receive(const std::string &pbMsgType)
     {
-      auto found = _recv_func_map.find(protobuf);
+      auto found = _recv_func_map.find(pbMsgType);
       if (found == _recv_func_map.end())
       {
         std::stringstream msg;
-        msg << "Unsupported protobuf type '" << protobuf
+        msg << "Unsupported protobuf message type '" << pbMsgType
             << "'. Only the following types are supported: ";
         for (auto const &p : _recv_func_map) msg << p.first << " ";
         throw std::invalid_argument(msg.str());
       }
-      return _recv_func_map[protobuf]();
+      return _recv_func_map[pbMsgType]();
     }
 
   protected:
@@ -230,7 +230,7 @@ class DataReceiver
         port = ntohs(myaddr.sin_port);
       }
 
-      // register all known protobuf types
+      // register all known protobuf message types
       _recv_func_map[roboception::msgs::Frame::descriptor()->name()] = std::bind(
               &DataReceiver::receive<roboception::msgs::Frame>, this);
       _recv_func_map[roboception::msgs::Imu::descriptor()->name()] = std::bind(

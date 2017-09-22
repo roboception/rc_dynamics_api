@@ -131,10 +131,10 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      * given data stream and is required for de-serializing the respective
      * messages.
      *
-     * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
-     * @return the corresponding protobuf type as string (e.g. "Frame" or "Dynamics")
+     * @param stream a specific rc_dynamics data stream (e.g. "pose", "pose_rt" or "dynamics")
+     * @return the corresponding protobuf message type as string (e.g. "Frame" or "Dynamics")
      */
-    std::string getPbMsgNameOfStream(const std::string &stream);
+    std::string getPbMsgTypeOfStream(const std::string &stream);
 
 
     /**
