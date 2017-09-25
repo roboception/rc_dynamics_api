@@ -34,6 +34,7 @@
  */
 
 #include "remote_interface.h"
+#include "unexpected_receive_timeout.h"
 
 #include <cpr/cpr.h>
 #include <json.hpp>
@@ -344,13 +345,14 @@ RemoteInterface::createReceiverForStream(const string &stream,
   receiver->setTimeout(initialTimeOut);
   if (!receiver->receive(_protobufMap[stream]))
   {
-    stringstream msg;
-    msg << "Did not receive any data within the last "
-        << initialTimeOut << " ms. "
-        << "Either rc_visard does not seem to send the data properly "
-                "(is rc_dynamics module running?) or you seem to have serious "
-                "network/connection problems!";
-    throw runtime_error(msg.str());
+    throw UnexpectedReceiveTimeout(initialTimeOut);
+//    stringstream msg;
+//    msg << "Did not receive any data within the last "
+//        << initialTimeOut << " ms. "
+//        << "Either rc_visard does not seem to send the data properly "
+//                "(is rc_dynamics module running?) or you seem to have serious "
+//                "network/connection problems!";
+//    throw runtime_error(msg.str());
   }
 
   // stream established, prepare everything for normal pose receiving

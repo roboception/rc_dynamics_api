@@ -46,6 +46,7 @@
 #include <string.h>
 
 #include "net_utils.h"
+#include "socket_exception.h"
 
 #include "roboception/msgs/frame.pb.h"
 #include "roboception/msgs/dynamics.pb.h"
@@ -102,9 +103,7 @@ class DataReceiver
                      (const char *) &_recvtimeout,
                      sizeof(struct timeval)) < 0)
       {
-        throw std::runtime_error(
-                "Error during setting receive timeout: setsockopt() returned with errno " +
-                std::to_string(errno));
+        throw SocketException("Error while setting receive timeout!", errno);
       }
     }
 
@@ -138,8 +137,7 @@ class DataReceiver
         }
         else
         {
-          throw std::runtime_error(
-                  "Error during socket recvfrom: errno " + std::to_string(e));
+          throw SocketException("Error during socket recvfrom!", e);
         }
       }
 
@@ -196,9 +194,7 @@ class DataReceiver
       _sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
       if (_sockfd < 0)
       {
-        std::stringstream msg;
-        msg << "Error creating socket: errno " << errno;
-        throw std::runtime_error(msg.str());
+        throw SocketException("Error while creating socket!", errno);
       }
 
       // bind socket to IP address and port number
@@ -208,10 +204,7 @@ class DataReceiver
       myaddr.sin_port = htons(port);
       if (bind(_sockfd, (sockaddr *) &myaddr, sizeof(sockaddr)) < 0)
       {
-        std::stringstream msg;
-        msg << "Error binding socket to port number " << port
-            << ": errno " << errno;
-        throw std::invalid_argument(msg.str());
+        throw SocketException("Error while binding socket!", errno);
       }
 
       // if socket was bound to arbitrary port, we need to figure out to which
@@ -222,10 +215,7 @@ class DataReceiver
         if (getsockname(_sockfd, (struct sockaddr *) &myaddr, &len) < 0)
         {
           close(_sockfd);
-          std::stringstream msg;
-          msg << "Error getting socket name to figure out port number: errno: "
-              << errno;
-          throw std::invalid_argument(msg.str());
+          throw SocketException("Error while getting socket name!", errno);
         }
         port = ntohs(myaddr.sin_port);
       }

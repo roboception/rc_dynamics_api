@@ -108,6 +108,8 @@ TARGET_LINK_LIBRARIES(${PROTOLIBNAME}
 set(src
     net_utils.cc
     remote_interface.cc
+    socket_exception.cc
+    unexpected_receive_timeout.cc
     ${CMAKE_CURRENT_BINARY_DIR}/project_version.cc
 )
 
@@ -116,6 +118,8 @@ set(hh
     remote_interface.h
     data_receiver.h
     msg_utils.h
+    socket_exception.h
+    unexpected_receive_timeout.h
     ${CMAKE_CURRENT_BINARY_DIR}/project_version.h
 )
 
