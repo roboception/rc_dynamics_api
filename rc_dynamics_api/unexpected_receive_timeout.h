@@ -44,6 +44,12 @@ namespace rc
 namespace dynamics
 {
 
+/**
+ * Exception handling cases where actually everything should be fine and
+ * rc_visard's dynamic state estimates should be received, but it is not.
+ *
+ * Gives some possible explanations why this timeout might have been received.
+ */
 class UnexpectedReceiveTimeout : public std::runtime_error
 {
   public:
