@@ -33,137 +33,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <rc_dynamics_api/remote_interface.h>
-
 #include <fstream>
 #include <signal.h>
 #include <chrono>
 #include <iomanip>
 
+#include "rc_dynamics_api/remote_interface.h"
+#include "csv_printing.h"
+
 using namespace std;
 using namespace rc::dynamics;
-
-namespace gpb = ::google::protobuf;
-namespace rcmsgs = roboception::msgs;
-
-
-/**
- * define different printing behaviors - one for each protobuf message type
- */
-template<class T>
-void printAsCsv(const gpb::Message*, ofstream &s);
-
-// printing behaviour for Pose type
-template<>
-void printAsCsv<rcmsgs::Pose>(
-        const gpb::Message *m, ofstream &s)
-{
-  auto pose = (const rcmsgs::Pose*) m;
-  s << "," << pose->position().x()
-     << "," << pose->position().y()
-     << "," << pose->position().z()
-     << "," << pose->orientation().x()
-     << "," << pose->orientation().y()
-     << "," << pose->orientation().z()
-     << "," << pose->orientation().w();
-  auto cov = pose->covariance();
-  for (int i = 0; i<cov.size(); i++)
-  {
-    s << "," << cov.Get(i);
-  }
-}
-
-// printing behaviour for Frame type
-template<>
-void printAsCsv<rcmsgs::Frame>(
-        const gpb::Message *m, ofstream &s)
-{
-  auto pose = (const rcmsgs::Frame*) m;
-  auto posestamped = pose->pose();
-  auto cov = posestamped.pose().covariance();
-  s << posestamped.timestamp().sec() << posestamped.timestamp().nsec()
-     << "," << pose->parent()  << "," << pose->name();
-  printAsCsv<rcmsgs::Pose>(&posestamped.pose(), s);
-}
-
-// printing behaviour for Imu type
-template<>
-void printAsCsv<rcmsgs::Imu>(
-        const gpb::Message *m, ofstream &s)
-{
-  auto imu = (const rcmsgs::Imu*) m;
-  s << imu->timestamp().sec() << imu->timestamp().nsec()
-     << "," << imu->linear_acceleration().x()
-     << "," << imu->linear_acceleration().y()
-     << "," << imu->linear_acceleration().z()
-     << "," << imu->angular_velocity().x()
-     << "," << imu->angular_velocity().y()
-     << "," << imu->angular_velocity().z();
-}
-
-// printing behaviour for Dynamics type
-template<>
-void printAsCsv<rcmsgs::Dynamics>(
-        const gpb::Message *m, ofstream &s)
-{
-  auto dyn = (const rcmsgs::Dynamics*) m;
-  s << dyn->timestamp().sec() << dyn->timestamp().nsec();
-  printAsCsv<rcmsgs::Pose>(&dyn->pose(), s);
-  s << "," << dyn->pose_frame()
-     << "," << dyn->pose_frame()
-     << "," << dyn->linear_velocity().x()
-     << "," << dyn->linear_velocity().y()
-     << "," << dyn->linear_velocity().z()
-     << "," << dyn->linear_velocity_frame()
-     << "," << dyn->angular_velocity().x()
-     << "," << dyn->angular_velocity().y()
-     << "," << dyn->angular_velocity().z()
-     << "," << dyn->angular_velocity_frame()
-     << "," << dyn->linear_acceleration().x()
-     << "," << dyn->linear_acceleration().y()
-     << "," << dyn->linear_acceleration().z()
-     << "," << dyn->linear_acceleration_frame();
-  auto cov = dyn->covariance();
-  for (int i = 0; i<cov.size(); i++)
-  {
-    s << "," << cov.Get(i);
-  }
-  printAsCsv<rcmsgs::Frame>(&dyn->cam2imu_transform(), s);
-  s << "," << dyn->possible_jump();
-}
-
-
-/**
- * Class to register and handle all the different printing behaviours, one for
- * each msg type
- */
-class CSVPrinter
-{
-  public:
-    CSVPrinter()
-    {
-      // register printing behaviour for all known protobuf message types
-      printerMap[rcmsgs::Frame::descriptor()->name()] = std::bind(
-              &printAsCsv<rcmsgs::Frame>,
-              std::placeholders::_1, std::placeholders::_2);
-      printerMap[rcmsgs::Imu::descriptor()->name()] = std::bind(
-              &printAsCsv<rcmsgs::Imu>,
-              std::placeholders::_1, std::placeholders::_2);
-      printerMap[rcmsgs::Dynamics::descriptor()->name()] = std::bind(
-              &printAsCsv<rcmsgs::Dynamics>,
-              std::placeholders::_1, std::placeholders::_2);
-    }
-
-    void print(const string& pbMsgType, const gpb::Message* m, ofstream &s)
-    {
-      printerMap[pbMsgType](m, s);
-      s << endl;
-    }
-
-  protected:
-    std::map<std::string, std::function<void (const gpb::Message*, ofstream &)>> printerMap;
-};
-
 
 
 /**
@@ -271,7 +150,6 @@ int main(int argc, char *argv[])
   /**
    * open file for recording if required
    */
-  CSVPrinter csv;
   ofstream outputFile;
   if (userSetOutputFile)
   {
@@ -348,16 +226,22 @@ int main(int argc, char *argv[])
       auto msg = receiver->receive(rcvisardDynamics->getPbMsgTypeOfStream(streamName));
       if (msg)
       {
-        ++cntMsgs;
         if (outputFile.is_open())
         {
-          csv.print(rcvisardDynamics->getPbMsgTypeOfStream(streamName), msg.get(), outputFile);
+          if (cntMsgs==0)
+          {
+            csv::Header h;
+            outputFile << (h << *msg) << endl;
+          }
+          csv::Line l;
+          outputFile << (l << *msg) << endl;
         }
         else
         {
           cout << "received " << streamName << " msg:" << endl
                << msg->DebugString() << endl;
         }
+        ++cntMsgs;
       }
       else
       {

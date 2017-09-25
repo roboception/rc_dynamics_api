@@ -115,6 +115,7 @@ set(hh
     net_utils.h
     remote_interface.h
     data_receiver.h
+    msg_utils.h
     ${CMAKE_CURRENT_BINARY_DIR}/project_version.h
 )
 

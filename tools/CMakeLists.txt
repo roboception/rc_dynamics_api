@@ -35,7 +35,7 @@ project(tools CXX)
 
 # build programs
 
-add_executable(rcdynamics_stream rcdynamics_stream.cc)
+add_executable(rcdynamics_stream rcdynamics_stream.cc csv_printing.h)
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/../rc_dynamics_api)
 target_link_libraries(rcdynamics_stream rc_dynamics_api_static ${PROTOBUF_LIBRARIES})
 
