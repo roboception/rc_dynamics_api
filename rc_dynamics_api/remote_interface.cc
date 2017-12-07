@@ -207,29 +207,23 @@ RemoteInterface::~RemoteInterface()
   }
 }
 
-
-void RemoteInterface::start(bool flagRestart)
+void RemoteInterface::callDynamicsService(std::string serviceName)
 {
-  // do put request on respective url (no parameters needed for this simple service call)
-  string serviceToCall = (flagRestart) ? "restart" : "start";
   cpr::Url url = cpr::Url{
-          _baseUrl + "/nodes/rc_dynamics/services/" + serviceToCall};
+          _baseUrl + "/nodes/rc_dynamics/services/" + serviceName};
   auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(put);
 }
 
-
-void RemoteInterface::stop()
-{
-  // do put request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/services/stop"};
-  auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
-  handleCPRResponse(put);
-}
-
+void RemoteInterface::restart() { callDynamicsService("restart"); }
+void RemoteInterface::start() { callDynamicsService("start"); }
+void RemoteInterface::startSlam() { callDynamicsService("start_slam"); }
+void RemoteInterface::stop() { callDynamicsService("stop"); }
+void RemoteInterface::stopSlam() { callDynamicsService("stop_slam"); }
 
 RemoteInterface::State RemoteInterface::getState()
 {
+  // TODO: Use getstate instead of status, translate state from enteredState code
   // do get request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/status"};
   auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});

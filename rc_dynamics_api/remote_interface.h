@@ -103,15 +103,31 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 
     /**
      * Sets rc_dynamics module to running state.
-     *
-     * @param flagRestart do a restart, if enable==true and rc_dynamics module was already running
+     * Only start the Stereo INS. To start SLAM use startSlam()
+     * To restart use the restart() method
      */
-    void start(bool flagRestart = false);
+    void start();
+    /**
+     * Sets rc_dynamics module to running state.
+     * Also starts up the Stereo INS, if not already running.
+     */
+    void startSlam();
+    /**
+     * Restarts the rc_dynamics module.
+     * If SLAM was running, it will be restarted too.
+     */
+    void restart();
 
     /**
-     * Stops rc_dynamics module
+     * Stops rc_dynamics module. If SLAM is running it will be stopped too.
      */
     void stop();
+
+    /**
+     * Stops only the SLAM module (via the rc_dynamics module).
+     * The Stereo INS will keep running.
+     */
+    void stopSlam();
 
     /**
      * Checks state of rc_dynamics module (running, stopped, ...)
@@ -212,6 +228,8 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 
     void cleanUpRequestedStreams();
     void checkStreamTypeAvailable(const std::string& stream);
+    ///Common functionality for start(), startSlam(), stop(), ...
+    void callDynamicsService(std::string serviceName);
 
     std::string _visardAddrs;
     std::map<std::string, std::list<std::string>> _reqStreams;
