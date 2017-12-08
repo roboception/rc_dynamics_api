@@ -214,7 +214,7 @@ RemoteInterface::State RemoteInterface::callDynamicsService(std::string serviceN
   auto response = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(response);
   auto j = json::parse(response.text);
-  int entered_state = j["enteredState"].get<int>();
+  int entered_state = j["response"]["enteredState"].get<int>();
   if(entered_state < static_cast<int>(State::IDLE) or
      entered_state > static_cast<int>(State::RUNNING_WITH_SLAM))
   {
