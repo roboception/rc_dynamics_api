@@ -83,12 +83,27 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 
     using Ptr = std::shared_ptr<RemoteInterface>;
 
-    enum State
+    ///An enum mirroring the state-machine states enum in rc_dynamics/dynamicsRos.h.
+    ///The latter is only available on the visard, therefore not included directly.
+    enum class State
     {
-      RUNNING,
-      STOPPED
+      IDLE = 0, ///< Not yet started or stopped
+      RUNNING,  ///< Stereo INS is running
+      FATAL,    ///< An error has occured. May be resolvable by stopping.
+      SYNC_INS, ///< Waiting for IMU data, will proceed to RUNNING
+      SYNC_INS_AND_SLAM, ///< Waiting for IMU data, will proceed to SYNC_SLAM
+      SYNC_SLAM,         ///< Stereo INS is running, waiting for SLAM data, will proceed to RUNNING_WITH_SLAM
+      RUNNING_WITH_SLAM ///< Stereo INS and SLAM are running.
     };
 
+    ///Thrown if the enteredState response of the dynamics service does not correspond to those
+    ///in the State enum
+    class invalid_state : public std::runtime_error
+    {
+      public:
+      explicit invalid_state(int encountered_state)
+        : runtime_error("Invalid state encountered: " + std::to_string(encountered_state)){}
+    };
 
     /**
      * Creates a local instance of rc_visard's remote pose interface
@@ -103,36 +118,46 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 
     /**
      * Sets rc_dynamics module to running state.
-     * Only start the Stereo INS. To start SLAM use startSlam()
-     * To restart use the restart() method
+     * Only start the Stereo INS. To start SLAM use startSlam().
+     * To restart use the restart() method.
+     * @return the entered state. Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
      */
-    void start();
+    State start();
     /**
      * Sets rc_dynamics module to running state.
      * Also starts up the Stereo INS, if not already running.
+     * @return the entered state. Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
      */
-    void startSlam();
+    State startSlam();
     /**
      * Restarts the rc_dynamics module.
      * If SLAM was running, it will be restarted too.
+     * @return the entered state. Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
      */
-    void restart();
+    State restart();
 
     /**
      * Stops rc_dynamics module. If SLAM is running it will be stopped too.
+     * @return the entered state. Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
      */
-    void stop();
+    State stop();
 
     /**
      * Stops only the SLAM module (via the rc_dynamics module).
      * The Stereo INS will keep running.
+     * @return the entered state. Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
      */
-    void stopSlam();
+    State stopSlam();
 
     /**
-     * Checks state of rc_dynamics module (running, stopped, ...)
-     *
+     * Checks state of rc_dynamics module (see the "State" enum)
      * @return the current rc_dynamics state
+     * @throw invalid_state if the entered state does not match the known states in State
      */
     State getState();
 
@@ -229,7 +254,7 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     void cleanUpRequestedStreams();
     void checkStreamTypeAvailable(const std::string& stream);
     ///Common functionality for start(), startSlam(), stop(), ...
-    void callDynamicsService(std::string serviceName);
+    State callDynamicsService(std::string serviceName);
 
     std::string _visardAddrs;
     std::map<std::string, std::list<std::string>> _reqStreams;

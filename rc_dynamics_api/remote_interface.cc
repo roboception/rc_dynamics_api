@@ -36,8 +36,8 @@
 #include "remote_interface.h"
 #include "unexpected_receive_timeout.h"
 
-#include <cpr/cpr.h>
 #include <json.hpp>
+#include <cpr/cpr.h>
 
 
 using namespace std;
@@ -207,25 +207,36 @@ RemoteInterface::~RemoteInterface()
   }
 }
 
-void RemoteInterface::callDynamicsService(std::string serviceName)
+RemoteInterface::State RemoteInterface::callDynamicsService(std::string serviceName)
 {
   cpr::Url url = cpr::Url{
           _baseUrl + "/nodes/rc_dynamics/services/" + serviceName};
-  auto put = cpr::Put(url, cpr::Timeout{_timeoutCurl});
-  handleCPRResponse(put);
+  auto response = cpr::Put(url, cpr::Timeout{_timeoutCurl});
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+  int entered_state = j["enteredState"].get<int>();
+  if(entered_state < static_cast<int>(State::IDLE) or
+     entered_state > static_cast<int>(State::RUNNING_WITH_SLAM))
+  {
+    //mismatch between rc_dynamics states and states used in this class?
+    throw invalid_state(entered_state);
+  }
+
+  return static_cast<State>(entered_state);
 }
 
-void RemoteInterface::restart() { callDynamicsService("restart"); }
-void RemoteInterface::start() { callDynamicsService("start"); }
-void RemoteInterface::startSlam() { callDynamicsService("start_slam"); }
-void RemoteInterface::stop() { callDynamicsService("stop"); }
-void RemoteInterface::stopSlam() { callDynamicsService("stop_slam"); }
+RemoteInterface::State RemoteInterface::restart()   { return callDynamicsService("restart"); }
+RemoteInterface::State RemoteInterface::start()     { return callDynamicsService("start"); }
+RemoteInterface::State RemoteInterface::startSlam() { return callDynamicsService("start_slam"); }
+RemoteInterface::State RemoteInterface::stop()      { return callDynamicsService("stop"); }
+RemoteInterface::State RemoteInterface::stopSlam()  { return callDynamicsService("stop_slam"); }
+RemoteInterface::State RemoteInterface::getState()  { return callDynamicsService("getstate"); }
 
+/* Replaced by above method
 RemoteInterface::State RemoteInterface::getState()
 {
-  // TODO: Use getstate instead of status, translate state from enteredState code
   // do get request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/status"};
+  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/services/getstate"};
   auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(get);
 
@@ -236,6 +247,7 @@ RemoteInterface::State RemoteInterface::getState()
   else
     return State::STOPPED;
 }
+*/
 
 list<string> RemoteInterface::getAvailableStreams()
 {
