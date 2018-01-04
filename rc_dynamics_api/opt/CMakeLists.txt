@@ -27,15 +27,11 @@ unset(PACKAGE_VERSION)
 find_package(CURL)
 if(CURL_FOUND)
     set(USE_SYSTEM_CURL ON CACHE BOOL "Use the system curl for faster builds")
+else ()
+    set(BUILD_TESTING OFF CACHE BOOL "Build testing tree")
+
+    # ensure that CURL is not found next time at the installed location
+    set(CURL_INCLUDE_DIR "" CACHE STRING "" FORCE)
+    set(CURL_LIBRARY "" CACHE STRING "" FORCE)
 endif()
 add_subdirectory(cpr)
-
-#message(STATUS "1: ${CMAKE_CURRENT_BINARY_DIR} 2: ${LIBRARY_OUTPUT_PATH} 3: ${PROJECT_BINARY_DIR} 4:  ")
-
-# since cpr library isnt installing anything at all we need to manually install
-# the shared object
-#install(FILES ${CMAKE_BINARY_DIR}/lib/libcpr.so
-#        DESTINATION lib
-#)
-
-#install(TARGETS cpr EXPORT PROJECTTargets COMPONENT bin DESTINATION lib)

@@ -48,7 +48,7 @@ namespace rc
  * @param ip
  * @return
  */
-uint32_t IPToUInt(const std::string ip);
+uint32_t IPToUInt(const std::string &ip);
 
 /**
  * Checks if a given ip is in range of a network defined by ip/subnet
@@ -58,7 +58,7 @@ uint32_t IPToUInt(const std::string ip);
  * @param mask
  * @return
  */
-bool isIPInRange(const std::string ip, const std::string network, const std::string mask);
+bool isIPInRange(const std::string &ip, const std::string &network, const std::string &mask);
 
 /**
  * Convenience function to scan this host's (multiple) network interface(s) for
@@ -69,11 +69,11 @@ bool isIPInRange(const std::string ip, const std::string network, const std::str
  *
  * @param thisHostsIP IP address to be used as stream destination (only valid if returned true)
  * @param otherHostsIP rc_visard's IP address, e.g. "192.168.0.20"
- * @param networkInterface rc_visard's subnet config, e.g. "255.255.255.0"
+ * @param networkInterface name, e.g. eth0, wlan0, ...
  * @return true if valid IP address was found among network interfaces
  */
 bool getThisHostsIP(std::string &thisHostsIP,
-                    const std::string &otherHostsIP = "",
+                    const std::string &otherHostsIP,
                     const std::string &networkInterface = "");
 
 /**

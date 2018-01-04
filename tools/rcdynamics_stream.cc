@@ -41,9 +41,14 @@
 #include "rc_dynamics_api/remote_interface.h"
 #include "csv_printing.h"
 
+#ifdef WIN32
+#include <winsock2.h>
+#undef max
+#undef min
+#endif
+
 using namespace std;
 using namespace rc::dynamics;
-
 
 /**
  * catching signals for proper program escape
@@ -55,7 +60,6 @@ void signal_callback_handler(int signum)
   caught_signal = true;
 }
 
-
 /**
  * Print usage of example including command line args
  */
@@ -64,20 +68,23 @@ void printUsage(char *arg)
   cout << "\nLists available rcdynamics data streams of the specified rc_visard IP, "
           "\nor requests a data stream and either prints received messages or records "
           "\nthem as csv-file, see -o option."
-       << "\n\nUsage: \n\t"
+       << "\n\nUsage: \n"
        << arg
-       << " -v rcVisardIP -l | -s stream [-i networkInterface]"
-          "\n\t\t[-n maxNumData][-t maxRecTimeSecs][-o outputFile]"
+       << " -v <rcVisardIP> -l | -s <stream> [-i <networkInterface>]"
+          "\n\t[-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
        << endl;
 }
 
-
 int main(int argc, char *argv[])
 {
+#ifdef WIN32
+  WSADATA wsaData;
+  WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
+
   // Register signals and signal handler
   signal(SIGINT, signal_callback_handler);
   signal(SIGTERM, signal_callback_handler);
-
 
   /**
    * Parse program options (e.g. IP )
@@ -91,60 +98,73 @@ int main(int argc, char *argv[])
   bool userSetStreamType = false;
   bool onlyListStreams = false;
 
-  int opt;
-  while ((opt = getopt(argc, argv, "hln:v:i:o:t:s:")) != -1)
+  int i=1;
+  while (i < argc)
   {
-    switch (opt)
+    std::string p=argv[i++];
+
+    if (p == "-l")
     {
-      case 'l':
-        onlyListStreams = true;
-        break;
-      case 's':
-        streamName = string(optarg);
-        userSetStreamType = true;
-        break;
-      case 'i':
-        networkIface = string(optarg);
-        break;
-      case 'v':
-        visardIP = string(optarg);
-        userSetIp = true;
-        break;
-      case 'n':
-        maxNumRecordingMsgs = (unsigned int) max(0, atoi(optarg));
-        userSetMaxNumMsgs = true;
-        break;
-      case 't':
-        maxRecordingTimeSecs = (unsigned int) max(0, atoi(optarg));
-        userSetRecordingTime = true;
-        break;
-      case 'o':
-        outputFileName = string(optarg);
-        userSetOutputFile = true;
-        break;
-      case 'h':
-        printUsage(argv[0]);
-        return EXIT_SUCCESS;
-      default: /* '?' */
-        printUsage(argv[0]);
-        return EXIT_FAILURE;
+      onlyListStreams = true;
+    }
+    else if (p == "-s" && i < argc)
+    {
+      streamName = string(argv[i++]);
+      userSetStreamType = true;
+    }
+    else if (p == "-i" && i < argc)
+    {
+      networkIface = string(argv[i++]);
+    }
+    else if (p == "-v" && i < argc)
+    {
+      visardIP = string(argv[i++]);
+      userSetIp = true;
+    }
+    else if (p == "-n" && i < argc)
+    {
+      maxNumRecordingMsgs = (unsigned int) std::max(0, atoi(argv[i++]));
+      userSetMaxNumMsgs = true;
+    }
+    else if (p == "-t" && i < argc)
+    {
+      maxRecordingTimeSecs = (unsigned int) std::max(0, atoi(argv[i++]));
+      userSetRecordingTime = true;
+    }
+    else if (p == "-o" && i < argc)
+    {
+      outputFileName = string(argv[i++]);
+      userSetOutputFile = true;
+    }
+    else if (p == "-h")
+    {
+      printUsage(argv[0]);
+      return EXIT_SUCCESS;
+    }
+    else
+    {
+      printUsage(argv[0]);
+      return EXIT_FAILURE;
     }
   }
+
   if (!userSetIp)
   {
     cerr << "Please specify rc_visard IP." << endl;
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
+
   if (!userSetStreamType && !onlyListStreams)
   {
     cerr << "Please specify stream type." << endl;
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
+
   if (!userSetMaxNumMsgs && !userSetRecordingTime)
   {
-    userSetMaxNumMsgs = true;;
+    userSetMaxNumMsgs = true;
   }
 
   /**
@@ -285,6 +305,10 @@ int main(int argc, char *argv[])
   {
     cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;
   }
+
+#ifdef WIN32
+  ::WSACleanup();
+#endif
 
   return EXIT_SUCCESS;
 }

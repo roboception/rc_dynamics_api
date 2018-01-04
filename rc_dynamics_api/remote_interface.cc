@@ -352,13 +352,6 @@ RemoteInterface::createReceiverForStream(const string &stream,
   if (!receiver->receive(_protobufMap[stream]))
   {
     throw UnexpectedReceiveTimeout(initialTimeOut);
-//    stringstream msg;
-//    msg << "Did not receive any data within the last "
-//        << initialTimeOut << " ms. "
-//        << "Either rc_visard does not seem to send the data properly "
-//                "(is rc_dynamics module running?) or you seem to have serious "
-//                "network/connection problems!";
-//    throw runtime_error(msg.str());
   }
 
   // stream established, prepare everything for normal pose receiving

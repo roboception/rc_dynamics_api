@@ -37,9 +37,14 @@
 
 #include <signal.h>
 
+#ifdef WIN32
+#include <winsock2.h>
+#undef min
+#undef max
+#endif
+
 using namespace std;
 namespace rcdyn = rc::dynamics;
-
 
 /**
  * catching signals for proper program escape
@@ -51,7 +56,6 @@ void signal_callback_handler(int signum)
   caught_signal = true;
 }
 
-
 /**
  * Print usage of example including command line args
  */
@@ -59,15 +63,19 @@ void printUsage(char *arg)
 {
   cout << "\nRequests a data stream from the specified rc_visard IP "
           "\nand simply prints received data to std out."
-       << "\n\nUsage: \n\t"
+       << "\n\nUsage: \n"
        << arg
-       << " -v rcVisardIP -s stream [-i networkInterface][-n numMessages]"
+       << " -v <rcVisardIP> -s <stream> [-i <networkInterface>][-n <numMessages>]"
        << endl;
 }
 
-
 int main(int argc, char *argv[])
 {
+#ifdef WIN32
+  WSADATA wsaData;
+  WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
+
   // Register signals and signal handler for proper program escape
   signal(SIGINT, signal_callback_handler);
   signal(SIGTERM, signal_callback_handler);
@@ -81,31 +89,38 @@ int main(int argc, char *argv[])
   bool userSetIp = false;
   bool userSetStreamType = false;
 
-  int opt;
-  while ((opt = getopt(argc, argv, "hn:v:i:s:")) != -1)
+  int i=1;
+  while (i < argc)
   {
-    switch (opt)
+    std::string p=argv[i++];
+
+    if (p == "-s" && i < argc)
     {
-      case 's':
-        streamName = string(optarg);
-        userSetStreamType = true;
-        break;
-      case 'i':
-        networkIface = string(optarg);
-        break;
-      case 'v':
-        visardIP = string(optarg);
-        userSetIp = true;
-        break;
-      case 'n':
-        maxNumMsgs = (unsigned int) max(0, atoi(optarg));
-        break;
-      case 'h':
-        printUsage(argv[0]);
-        return EXIT_SUCCESS;
-      default: /* '?' */
-        printUsage(argv[0]);
-        return EXIT_FAILURE;
+      streamName = string(argv[i++]);
+      userSetStreamType = true;
+    }
+    else if (p == "-i" && i < argc)
+    {
+      networkIface = string(argv[i++]);
+    }
+    else if (p == "-v" && i < argc)
+    {
+      visardIP = string(argv[i++]);
+      userSetIp = true;
+    }
+    else if (p == "-n" && i < argc)
+    {
+      maxNumMsgs = (unsigned int) std::max(0, atoi(argv[i++]));
+    }
+    else if (p == "-h")
+    {
+      printUsage(argv[0]);
+      return EXIT_SUCCESS;
+    }
+    else
+    {
+      printUsage(argv[0]);
+      return EXIT_FAILURE;
     }
   }
   if (!userSetIp)
@@ -120,7 +135,6 @@ int main(int argc, char *argv[])
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
-
 
   /**
    * Instantiate rc::dynamics::RemoteInterface and start streaming
@@ -181,5 +195,10 @@ int main(int argc, char *argv[])
   }
 
   cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;
+
+#ifdef WIN32
+  ::WSACleanup();
+#endif
+
   return EXIT_SUCCESS;
 }

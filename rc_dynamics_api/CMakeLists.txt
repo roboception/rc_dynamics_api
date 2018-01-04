@@ -45,19 +45,6 @@ include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS})
 # let shared objects include static libs
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Find protocol buffers
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules/")
-FIND_PACKAGE(ProtocolBuffers REQUIRED)
-IF(NOT PROTOBUF_LIBRARY)
-    MESSAGE(FATAL_ERROR "protobuf library not found")
-ENDIF()
-IF(NOT PROTOBUF_INCLUDE_DIR)
-    MESSAGE(FATAL_ERROR "protobuf include dir not found")
-ENDIF()
-IF(NOT PROTOBUF_PROTOC_EXECUTABLE)
-    MESSAGE(FATAL_ERROR "protoc executable not found")
-ENDIF()
-
 # set correct include dirs
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -133,7 +120,10 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(rc_dynamics_api LINK_PRIVATE ${CPR_LIBRARIES} ${PROTOLIBNAME})
     set_target_properties(rc_dynamics_api PROPERTIES SOVERSION ${abiversion})
 
-    install(TARGETS rc_dynamics_api EXPORT PROJECTTargets COMPONENT bin DESTINATION lib)
+    install(TARGETS rc_dynamics_api EXPORT PROJECTTargets COMPONENT bin
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib)
 endif ()
 
 # only install headers if we build and install the shared lib

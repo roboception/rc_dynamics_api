@@ -36,6 +36,8 @@
 
 #include "unexpected_receive_timeout.h"
 
+#include <string>
+
 using namespace std;
 
 namespace rc
@@ -49,7 +51,8 @@ UnexpectedReceiveTimeout::UnexpectedReceiveTimeout(unsigned int timeoutMillis)
                         "Possible reasons: \n" +
                         "1) rc_visard's dynamics module is not running, i.e. turned off.\n" +
                         "2) rc_visard cannot estimate its dynamic state, e.g. cameras are occluded, camera images are too dark, or cameras are de-calibrated.\n" +
-                        "3) Network issues, i.e. messages are sent by rc_visard but not received by this host!"),
+                        "3) Network issues, i.e. messages are sent by rc_visard but not received by this host!\n" +
+                        "4) Firewall on the host may be active."),
           _timeout(timeoutMillis)
 {}
 

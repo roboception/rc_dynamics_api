@@ -39,11 +39,17 @@
 #include <memory>
 #include <sstream>
 
+#ifdef WIN32
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
 #include <unistd.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#endif
+
 #include <string.h>
+#include <functional>
 
 #include "net_utils.h"
 #include "socket_exception.h"
@@ -87,7 +93,11 @@ class DataReceiver
 
     virtual ~DataReceiver()
     {
+#ifdef WIN32
+      closesocket(_sockfd);
+#else
       close(_sockfd);
+#endif
     }
 
     /**
@@ -97,6 +107,16 @@ class DataReceiver
      */
     virtual void setTimeout(unsigned int ms)
     {
+#ifdef WIN32
+      DWORD timeout=ms;
+      if (setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO,
+                     (const char *) &timeout,
+                     sizeof(timeout)) < 0)
+      {
+        throw SocketException("Error while setting receive timeout!", errno);
+      }
+#else
+      struct timeval _recvtimeout;
       _recvtimeout.tv_sec = ms / 1000;
       _recvtimeout.tv_usec = (ms % 1000) * 1000;
       if (setsockopt(_sockfd, SOL_SOCKET, SO_RCVTIMEO,
@@ -105,6 +125,7 @@ class DataReceiver
       {
         throw SocketException("Error while setting receive timeout!", errno);
       }
+#endif
     }
 
 
@@ -125,8 +146,25 @@ class DataReceiver
     std::shared_ptr<PbMsgType> receive()
     {
       // receive msg from socket; blocking call (timeout)
-      int msg_size = TEMP_FAILURE_RETRY(
-              recvfrom(_sockfd, _buffer, sizeof(_buffer), 0, NULL, NULL));
+#ifdef WIN32
+      int msg_size=recvfrom(_sockfd, _buffer, sizeof(_buffer), 0, NULL, NULL);
+
+      if (msg_size < 0)
+      {
+        int e = WSAGetLastError();
+        if (e == WSAETIMEDOUT)
+        {
+          // timeouts are allowed to happen, then return NULL pointer
+          return nullptr;
+        }
+        else
+        {
+          throw SocketException("Error during socket recvfrom!", e);
+        }
+      }
+#else
+      int msg_size=TEMP_FAILURE_RETRY(recvfrom(_sockfd, _buffer, sizeof(_buffer), 0, NULL, NULL));
+
       if (msg_size < 0)
       {
         int e = errno;
@@ -140,6 +178,7 @@ class DataReceiver
           throw SocketException("Error during socket recvfrom!", e);
         }
       }
+#endif
 
       // parse msgs as probobuf
       auto pbMsg = std::shared_ptr<PbMsgType>(new PbMsgType());
@@ -161,7 +200,7 @@ class DataReceiver
      *
      * @return the next rc_dynamics data stream message as a pb::Message base class pointer, or NULL if timeout
      */
-    virtual std::shared_ptr<::google::protobuf::Message> receive(const std::string &pbMsgType)
+    virtual std::shared_ptr< ::google::protobuf::Message> receive(const std::string &pbMsgType)
     {
       auto found = _recv_func_map.find(pbMsgType);
       if (found == _recv_func_map.end())
@@ -186,13 +225,9 @@ class DataReceiver
                                + ip_address);
       }
 
-      // may result in weird errors when not initialized properly
-      _recvtimeout.tv_sec = 0;
-      _recvtimeout.tv_usec = 1000 * 10;
-
       // open socket for UDP listening
       _sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-      if (_sockfd < 0)
+      if (_sockfd == INVALID_SOCKET)
       {
         throw SocketException("Error while creating socket!", errno);
       }
@@ -200,8 +235,8 @@ class DataReceiver
       // bind socket to IP address and port number
       struct sockaddr_in myaddr;
       myaddr.sin_family = AF_INET;
-      inet_aton(ip_address.c_str(), &myaddr.sin_addr); // set IP addrs
-      myaddr.sin_port = htons(port);
+      myaddr.sin_addr.s_addr=inet_addr(ip_address.c_str()); // set IP addrs
+      myaddr.sin_port = htons(static_cast<u_short>(port));
       if (bind(_sockfd, (sockaddr *) &myaddr, sizeof(sockaddr)) < 0)
       {
         throw SocketException("Error while binding socket!", errno);
@@ -211,10 +246,20 @@ class DataReceiver
       // port number
       if (port == 0)
       {
+#ifdef WIN32
+        int len=sizeof(myaddr);
+#else
         socklen_t len = sizeof(myaddr);
+#endif
+
         if (getsockname(_sockfd, (struct sockaddr *) &myaddr, &len) < 0)
         {
+#ifdef WIN32
+          closesocket(_sockfd);
+#else
           close(_sockfd);
+#endif
+
           throw SocketException("Error while getting socket name!", errno);
         }
         port = ntohs(myaddr.sin_port);
@@ -229,11 +274,15 @@ class DataReceiver
               &DataReceiver::receive<roboception::msgs::Dynamics>, this);
     }
 
+#ifdef WIN32
+    SOCKET _sockfd;
+#else
     int _sockfd;
-    struct timeval _recvtimeout;
+#endif
+
     char _buffer[512];
 
-    typedef std::map<std::string, std::function<std::shared_ptr<::google::protobuf::Message>()>> map_type;
+    typedef std::map<std::string, std::function<std::shared_ptr< ::google::protobuf::Message>()>> map_type;
     map_type _recv_func_map;
 };
 

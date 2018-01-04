@@ -49,6 +49,12 @@
 #include "roboception/msgs/dynamics.pb.h"
 #include "roboception/msgs/imu.pb.h"
 
+#ifdef WIN32
+#ifdef GetMessage
+#undef GetMessage
+#endif
+#endif
+
 namespace csv {
 
 
@@ -96,15 +102,17 @@ struct Header {
         int size = refl->FieldSize(m, field);
         if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
         {
-          for (int i=0; i<size; i++)
+          for (int k=0; k<size; k++)
           {
-            *this << prefixed(field->name() + '_' + std::to_string(i),
+            *this << prefixed(field->name() + '_' + std::to_string(k),
                               refl->GetMessage(m, field));
           }
-        } else {
-          for (int i=0; i<size; i++)
+        }
+        else
+        {
+          for (int k=0; k<size; k++)
           {
-            *this << field->name() + "_" + std::to_string(i);
+            *this << field->name() + "_" + std::to_string(k);
           }
         }
       }
@@ -113,7 +121,9 @@ struct Header {
         if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
         {
           *this << prefixed(field->name() + '_', refl->GetMessage(m, field));
-        } else {
+        }
+        else
+        {
           *this << field->name();
         }
       }
@@ -155,63 +165,63 @@ struct Line
         int size = refl->FieldSize(m, field);
         switch (field->cpp_type()) {
           case FieldDescriptor::CPPTYPE_MESSAGE:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << refl->GetRepeatedMessage(m, field, i);
+              *this << refl->GetRepeatedMessage(m, field, k);
             }
             break;
           case FieldDescriptor::CPPTYPE_BOOL:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedBool(m, field, i));
+              *this << std::to_string(refl->GetRepeatedBool(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_ENUM:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << refl->GetRepeatedEnum(m, field, i)->name();
+              *this << refl->GetRepeatedEnum(m, field, k)->name();
             }
             break;
           case FieldDescriptor::CPPTYPE_FLOAT:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedFloat(m, field, i));
+              *this << std::to_string(refl->GetRepeatedFloat(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_DOUBLE:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedDouble(m, field, i));
+              *this << std::to_string(refl->GetRepeatedDouble(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_UINT32:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedUInt32(m, field, i));
+              *this << std::to_string(refl->GetRepeatedUInt32(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_UINT64:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedUInt64(m, field, i));
+              *this << std::to_string(refl->GetRepeatedUInt64(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_INT32:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedInt32(m, field, i));
+              *this << std::to_string(refl->GetRepeatedInt32(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_INT64:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << std::to_string(refl->GetRepeatedInt64(m, field, i));
+              *this << std::to_string(refl->GetRepeatedInt64(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_STRING:
-            for (int i=0; i<size;++i)
+            for (int k=0; k<size;++k)
             {
-              *this << refl->GetRepeatedString(m, field, i);
+              *this << refl->GetRepeatedString(m, field, k);
             }
             break;
         }

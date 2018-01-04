@@ -41,8 +41,6 @@
 #include <memory>
 #include <iostream>
 
-#include <netinet/in.h>
-
 #include "roboception/msgs/frame.pb.h"
 #include "roboception/msgs/dynamics.pb.h"
 #include "roboception/msgs/imu.pb.h"
