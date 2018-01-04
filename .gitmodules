@@ -7,3 +7,6 @@
 [submodule "rc_dynamics_api/rc_dynamics_msgs"]
 	path = rc_dynamics_api/rc_dynamics_msgs
 	url = ../rc_dynamics_msgs
+[submodule "rc_dynamics_api/opt/protobuf"]
+	path = rc_dynamics_api/opt/protobuf
+	url = https://github.com/google/protobuf.git

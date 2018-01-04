@@ -46,22 +46,6 @@ enable_testing()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Find protocol buffers
-
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
-FIND_PACKAGE(ProtocolBuffers REQUIRED)
-IF(NOT PROTOBUF_LIBRARY)
-    MESSAGE(FATAL_ERROR "protobuf library not found")
-ENDIF()
-IF(NOT PROTOBUF_INCLUDE_DIR)
-    MESSAGE(FATAL_ERROR "protobuf include dir not found")
-ENDIF()
-IF(NOT PROTOBUF_PROTOC_EXECUTABLE)
-    MESSAGE(FATAL_ERROR "protoc executable not found")
-ENDIF()
-
-INCLUDE_DIRECTORIES(${PROTOBUF_INCLUDE_DIR})
-
 # - Configuration for code optimization -
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -82,36 +66,23 @@ endif ()
 if (MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
   
-  # Switching off compiler warnings in sub-modules and generated code
+  # Switching off some compiler warnings
 
-  add_definitions("/wd4018")
   add_definitions("/wd4061")
-  add_definitions("/wd4090")
   add_definitions("/wd4125")
   add_definitions("/wd4146")
-  add_definitions("/wd4244")
-  add_definitions("/wd4245")
-  add_definitions("/wd4251")
-  add_definitions("/wd4255")
   add_definitions("/wd4265")
-  add_definitions("/wd4267")
-  add_definitions("/wd4305")
-  add_definitions("/wd4310")
   add_definitions("/wd4355")
   add_definitions("/wd4365")
   add_definitions("/wd4514")
-  add_definitions("/wd4548")
   add_definitions("/wd4571")
-  add_definitions("/wd4574")
   add_definitions("/wd4625")
   add_definitions("/wd4626")
   add_definitions("/wd4647")
   add_definitions("/wd4668")
-  add_definitions("/wd4701")
   add_definitions("/wd4706")
   add_definitions("/wd4710")
   add_definitions("/wd4711")
-  add_definitions("/wd4774")
   add_definitions("/wd4800")
   add_definitions("/wd4820")
   add_definitions("/wd4946")

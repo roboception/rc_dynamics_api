@@ -33,14 +33,17 @@
 
 project(rc_dynamics_api CXX)
 
-## Adding cpr and json library.
-##############################
-add_subdirectory(opt)
-include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS})
+## Adding cpr, json and protobuf libraries
+##########################################
 
+add_subdirectory(opt)
+include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS} ${PROTOBUF_INCLUDE_DIR})
 
 ## Compiling and building protobuf messages into a library
 ##########################################################
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/Modules/")
+include(ProtobufGenerate)
 
 # let shared objects include static libs
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
