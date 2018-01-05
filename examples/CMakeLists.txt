@@ -41,5 +41,5 @@ target_link_libraries(simple_receiver rc_dynamics_api_static)
 
 # install tools
 
-install(TARGETS simple_receiver COMPONENT bin DESTINATION bin)
+#install(TARGETS simple_receiver COMPONENT bin DESTINATION bin)
 
