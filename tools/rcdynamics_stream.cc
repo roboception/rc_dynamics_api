@@ -71,7 +71,7 @@ void printUsage(char *arg)
        << "\n\nUsage: \n"
        << arg
        << " -v <rcVisardIP> -l | -s <stream> [-i <networkInterface>]"
-          "\n\t[-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
+          " [-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
        << endl;
 }
 
