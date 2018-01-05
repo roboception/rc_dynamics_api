@@ -1,6 +1,7 @@
-[Unreleased] - 2017-12-07
+[Unreleased] - 2018-01-05
 -------------------------
-- Adapt to latest version of rc_dynamics, i.e., add start_slam, and stop_slam functionality
+- Adapt to latest version of rc_dynamics, i.e.,
+  added start_slam, restart_slam and stop_slam functionality
 
 [0.4.0] - 2017-09-27
 --------------------

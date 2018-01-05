@@ -130,12 +130,20 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      */
     State startSlam();
     /**
-     * Restarts the rc_dynamics module.
-     * If SLAM was running, it will be restarted too.
+     * Restarts the rc_dynamics module to Stereo INS only mode.
+     * Equivalent to stop() and start()
      * @return the entered state. Note that this can be an intermediate state.
      * @throw invalid_state if the entered state does not match the known states in State
      */
     State restart();
+
+    /**
+     * Restarts the rc_dynamics module to SLAM mode.
+     * Equivalent to stop() and startSlam()
+     * @return the entered state. Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
+     */
+    State restartSlam();
 
     /**
      * Stops rc_dynamics module. If SLAM is running it will be stopped too.

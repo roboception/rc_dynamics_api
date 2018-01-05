@@ -225,12 +225,13 @@ RemoteInterface::State RemoteInterface::callDynamicsService(std::string serviceN
   return static_cast<State>(entered_state);
 }
 
-RemoteInterface::State RemoteInterface::restart()   { return callDynamicsService("restart"); }
-RemoteInterface::State RemoteInterface::start()     { return callDynamicsService("start"); }
-RemoteInterface::State RemoteInterface::startSlam() { return callDynamicsService("start_slam"); }
-RemoteInterface::State RemoteInterface::stop()      { return callDynamicsService("stop"); }
-RemoteInterface::State RemoteInterface::stopSlam()  { return callDynamicsService("stop_slam"); }
-RemoteInterface::State RemoteInterface::getState()  { return callDynamicsService("getstate"); }
+RemoteInterface::State RemoteInterface::restart()    { return callDynamicsService("restart"); }
+RemoteInterface::State RemoteInterface::restartSlam(){ return callDynamicsService("restart_slam"); }
+RemoteInterface::State RemoteInterface::start()      { return callDynamicsService("start"); }
+RemoteInterface::State RemoteInterface::startSlam()  { return callDynamicsService("start_slam"); }
+RemoteInterface::State RemoteInterface::stop()       { return callDynamicsService("stop"); }
+RemoteInterface::State RemoteInterface::stopSlam()   { return callDynamicsService("stop_slam"); }
+RemoteInterface::State RemoteInterface::getState()   { return callDynamicsService("getstate"); }
 
 /* Replaced by above method
 RemoteInterface::State RemoteInterface::getState()
