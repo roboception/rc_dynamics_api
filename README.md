@@ -107,7 +107,7 @@ meant as an example on how to use this API:
     receive the data is specified as 'eth0'. Messages are stored in the
     specified file as .csv-lines.
 
-        ./tools/rcdynamics_stream -v 10.0.2.99 -s pose_rt -i eth0 -t10 -o poses.csv
+        ./tools/rcdynamics_stream -v 10.0.2.99 -s pose_rt -i eth0 -a -t10 -o poses.csv
 
 Links
 -----

@@ -70,7 +70,7 @@ void printUsage(char *arg)
           "\nthem as csv-file, see -o option."
        << "\n\nUsage: \n"
        << arg
-       << " -v <rcVisardIP> -l | -s <stream> [-i <networkInterface>]"
+       << " -v <rcVisardIP> -l | -s <stream> [-a] [-i <networkInterface>]"
           " [-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
        << endl;
 }
@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
    */
   string outputFileName, visardIP, networkIface = "", streamName;
   unsigned int maxNumRecordingMsgs = 50, maxRecordingTimeSecs = 5;
+  bool userAutostart = false;
   bool userSetOutputFile = false;
   bool userSetMaxNumMsgs = false;
   bool userSetRecordingTime = false;
@@ -111,6 +112,10 @@ int main(int argc, char *argv[])
     {
       streamName = string(argv[i++]);
       userSetStreamType = true;
+    }
+    else if (p == "-a")
+    {
+      userAutostart = true;
     }
     else if (p == "-i" && i < argc)
     {
@@ -206,7 +211,7 @@ int main(int argc, char *argv[])
   }
 
   /* For all streams except 'imu' the rc_dynamcis node has to be started */
-  if (streamName != "imu")
+  if (userAutostart && streamName != "imu")
   {
     try
     {
@@ -282,7 +287,7 @@ int main(int argc, char *argv[])
    * Stopping streaming and clean-up
    * 'imu' stream works regardless if the rc_dynamics module is running, so no need to stop it
    */
-  if (streamName != "imu")
+  if (userAutostart && streamName != "imu")
   {
     try
     {
