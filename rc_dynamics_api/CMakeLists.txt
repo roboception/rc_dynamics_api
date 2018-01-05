@@ -84,13 +84,8 @@ PROTOBUF_GENERATE(CPP PROTO_SRC PROTO_HEADER
         DEPENDS "protos" ${UPSTREAM_TARGETS}
         OUTPATH ${CMAKE_CURRENT_BINARY_DIR})
 
-SET(PROTOLIBNAME "protolib")
-ADD_LIBRARY(${PROTOLIBNAME} STATIC
-        ${PROTO_SRC} ${PROTO_HEADER})
-
-TARGET_LINK_LIBRARIES(${PROTOLIBNAME}
-        ${PROTOBUF_LIBRARIES})
-
+ADD_LIBRARY(protolib STATIC ${PROTO_SRC} ${PROTO_HEADER})
+TARGET_LINK_LIBRARIES(protolib ${PROTOBUF_LIBRARY} ${PROTOBUF_LIBRARIES})
 
 ## Adding own library for pose interface
 ########################################
@@ -114,13 +109,13 @@ set(hh
 )
 
 add_library(rc_dynamics_api_static STATIC ${src})
-target_link_libraries(rc_dynamics_api_static ${CPR_LIBRARIES} ${PROTOLIBNAME})
+target_link_libraries(rc_dynamics_api_static ${CPR_LIBRARIES} protolib)
 
 # install(TARGETS rc_dynamics_api_static EXPORT PROJECTTargets COMPONENT dev DESTINATION lib)
 
 if (BUILD_SHARED_LIBS)
     add_library(rc_dynamics_api SHARED ${src})
-    target_link_libraries(rc_dynamics_api LINK_PRIVATE ${CPR_LIBRARIES} ${PROTOLIBNAME})
+    target_link_libraries(rc_dynamics_api LINK_PRIVATE ${CPR_LIBRARIES} protolib)
     set_target_properties(rc_dynamics_api PROPERTIES SOVERSION ${abiversion})
 
     install(TARGETS rc_dynamics_api EXPORT PROJECTTargets COMPONENT bin

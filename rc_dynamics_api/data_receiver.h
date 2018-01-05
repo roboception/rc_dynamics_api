@@ -227,7 +227,11 @@ class DataReceiver
 
       // open socket for UDP listening
       _sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#ifdef WIN32
       if (_sockfd == INVALID_SOCKET)
+#else
+      if (_sockfd < 0)
+#endif
       {
         throw SocketException("Error while creating socket!", errno);
       }
