@@ -242,24 +242,6 @@ std::string RemoteInterface::start()      { return callDynamicsService("start");
 std::string RemoteInterface::startSlam()  { return callDynamicsService("start_slam"); }
 std::string RemoteInterface::stop()       { return callDynamicsService("stop"); }
 std::string RemoteInterface::stopSlam()   { return callDynamicsService("stop_slam"); }
-std::string RemoteInterface::getState()   { return callDynamicsService("get_state"); }
-
-/* Replaced by above method
-RemoteInterface::State RemoteInterface::getState()
-{
-  // do get request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_dynamics/services/getstate"};
-  auto get = cpr::Get(url, cpr::Timeout{_timeoutCurl});
-  handleCPRResponse(get);
-
-  // parse text of response into json object
-  auto j = json::parse(get.text);
-  if (j["status"].get<string>() == "running")
-    return State::RUNNING;
-  else
-    return State::STOPPED;
-}
-*/
 
 list<string> RemoteInterface::getAvailableStreams()
 {

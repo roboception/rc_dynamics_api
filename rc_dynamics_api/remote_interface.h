@@ -161,13 +161,6 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     std::string stopSlam();
 
     /**
-     * Checks state of rc_dynamics module (see the "State" enum)
-     * @return the current rc_dynamics state
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string getState();
-
-    /**
      * Returns a list all available streams on rc_visard
      * @return
      */
@@ -232,7 +225,7 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      *  4) (removes the destination automatically from rc_visard device if data receiver is no longer used)
      *
      * Stream can only be established successfully if rc_dynamics module is running on
-     * rc_visard, see getState() and start(...) methods.
+     * rc_visard, see (re)start(_slam)(...) methods.
      *
      *
      * If desired interface for receiving is unspecified (or "") this host's
