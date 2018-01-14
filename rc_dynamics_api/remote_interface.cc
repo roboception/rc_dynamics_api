@@ -47,6 +47,14 @@ namespace rc
 {
 namespace dynamics
 {
+//Definitions of static const members
+const std::string RemoteInterface::State::IDLE="IDLE";
+const std::string RemoteInterface::State::RUNNING="RUNNING";
+const std::string RemoteInterface::State::FATAL="FATAL";
+const std::string RemoteInterface::State::WAITING_FOR_SINS="WAITING_FOR_SINS";
+const std::string RemoteInterface::State::WAITING_FOR_SINS_AND_SLAM="WAITING_FOR_SINS_AND_SLAM";
+const std::string RemoteInterface::State::WAITING_FOR_SLAM="WAITING_FOR_SLAM";
+const std::string RemoteInterface::State::RUNNING_WITH_SLAM="RUNNING_WITH_SLAM";
 
 string toString(cpr::Response resp)
 {
@@ -207,31 +215,34 @@ RemoteInterface::~RemoteInterface()
   }
 }
 
-RemoteInterface::State RemoteInterface::callDynamicsService(std::string serviceName)
+std::string RemoteInterface::callDynamicsService(std::string serviceName)
 {
-  cpr::Url url = cpr::Url{
-          _baseUrl + "/nodes/rc_dynamics/services/" + serviceName};
+  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/services/" + serviceName};
   auto response = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(response);
   auto j = json::parse(response.text);
-  int entered_state = j["response"]["enteredState"].get<int>();
-  if(entered_state < static_cast<int>(State::IDLE) or
-     entered_state > static_cast<int>(State::RUNNING_WITH_SLAM))
+  std::string entered_state = j["response"]["current_state"].get<std::string>();
+  if(entered_state != State::IDLE and
+     entered_state != State::RUNNING and
+     entered_state != State::FATAL and
+     entered_state != State::WAITING_FOR_SINS and
+     entered_state != State::WAITING_FOR_SINS_AND_SLAM and
+     entered_state != State::WAITING_FOR_SLAM and
+     entered_state != State::RUNNING_WITH_SLAM)
   {
     //mismatch between rc_dynamics states and states used in this class?
     throw invalid_state(entered_state);
   }
-
-  return static_cast<State>(entered_state);
+  return entered_state;
 }
 
-RemoteInterface::State RemoteInterface::restart()    { return callDynamicsService("restart"); }
-RemoteInterface::State RemoteInterface::restartSlam(){ return callDynamicsService("restart_slam"); }
-RemoteInterface::State RemoteInterface::start()      { return callDynamicsService("start"); }
-RemoteInterface::State RemoteInterface::startSlam()  { return callDynamicsService("start_slam"); }
-RemoteInterface::State RemoteInterface::stop()       { return callDynamicsService("stop"); }
-RemoteInterface::State RemoteInterface::stopSlam()   { return callDynamicsService("stop_slam"); }
-RemoteInterface::State RemoteInterface::getState()   { return callDynamicsService("getstate"); }
+std::string RemoteInterface::restart()    { return callDynamicsService("restart"); }
+std::string RemoteInterface::restartSlam(){ return callDynamicsService("restart_slam"); }
+std::string RemoteInterface::start()      { return callDynamicsService("start"); }
+std::string RemoteInterface::startSlam()  { return callDynamicsService("start_slam"); }
+std::string RemoteInterface::stop()       { return callDynamicsService("stop"); }
+std::string RemoteInterface::stopSlam()   { return callDynamicsService("stop_slam"); }
+std::string RemoteInterface::getState()   { return callDynamicsService("get_state"); }
 
 /* Replaced by above method
 RemoteInterface::State RemoteInterface::getState()
@@ -353,6 +364,13 @@ RemoteInterface::createReceiverForStream(const string &stream,
   if (!receiver->receive(_protobufMap[stream]))
   {
     throw UnexpectedReceiveTimeout(initialTimeOut);
+//    stringstream msg;
+//    msg << "Did not receive any data within the last "
+//        << initialTimeOut << " ms. "
+//        << "Either rc_visard does not seem to send the data properly "
+//                "(is rc_dynamics module running?) or you seem to have serious "
+//                "network/connection problems!";
+//    throw runtime_error(msg.str());
   }
 
   // stream established, prepare everything for normal pose receiving
