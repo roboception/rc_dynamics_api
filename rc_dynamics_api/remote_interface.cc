@@ -221,17 +221,39 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
   auto response = cpr::Put(url, cpr::Timeout{_timeoutCurl});
   handleCPRResponse(response);
   auto j = json::parse(response.text);
-  std::string entered_state = j["response"]["current_state"].get<std::string>();
-  if(entered_state != State::IDLE and
-     entered_state != State::RUNNING and
-     entered_state != State::FATAL and
-     entered_state != State::WAITING_FOR_SINS and
-     entered_state != State::WAITING_FOR_SINS_AND_SLAM and
-     entered_state != State::WAITING_FOR_SLAM and
-     entered_state != State::RUNNING_WITH_SLAM)
+  std::string entered_state;
+  try
   {
-    //mismatch between rc_dynamics states and states used in this class?
-    throw invalid_state(entered_state);
+    entered_state = j["response"]["current_state"].get<std::string>();
+    if(entered_state != State::IDLE and
+       entered_state != State::RUNNING and
+       entered_state != State::FATAL and
+       entered_state != State::WAITING_FOR_SINS and
+       entered_state != State::WAITING_FOR_SINS_AND_SLAM and
+       entered_state != State::WAITING_FOR_SLAM and
+       entered_state != State::RUNNING_WITH_SLAM)
+    {
+      //mismatch between rc_dynamics states and states used in this class?
+      throw invalid_state(entered_state);
+    }
+  }
+  catch (std::logic_error& json_exception)
+  {
+    //Maybe old interface version? If so just return the numeric code
+    //as string - it isn't used by the tools using the old interface
+    try
+    {
+      entered_state = std::to_string(j["response"]["enteredState"].get<int>());
+    }
+    catch (std::logic_error& json_exception)
+    {
+      //Real problem (may even be unrelated to parsing json. Let the user see what the response is.
+      cerr << "Logic error when parsing the response of a service call to rc_dynamics!\n";
+      cerr << "Service called: " << url << "\n";
+      cerr << "Response:" << "\n";
+      cerr << response.text << "\n";
+      throw;
+    }
   }
   return entered_state;
 }

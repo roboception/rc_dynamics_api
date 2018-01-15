@@ -225,7 +225,7 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      *  4) (removes the destination automatically from rc_visard device if data receiver is no longer used)
      *
      * Stream can only be established successfully if rc_dynamics module is running on
-     * rc_visard, see (re)start(_slam)(...) methods.
+     * rc_visard, see (re)start(_slam) methods.
      *
      *
      * If desired interface for receiving is unspecified (or "") this host's
