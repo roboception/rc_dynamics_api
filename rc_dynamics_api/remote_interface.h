@@ -44,6 +44,7 @@
 #include "roboception/msgs/frame.pb.h"
 #include "roboception/msgs/dynamics.pb.h"
 #include "roboception/msgs/imu.pb.h"
+#include "roboception/msgs/trajectory.pb.h"
 
 #include "data_receiver.h"
 #include "net_utils.h"
@@ -215,6 +216,11 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
      * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
      */
     void deleteAllDestinationsFromStream(const std::string &stream);
+
+    /**
+     * Returns the Slam trajectory from the sensor
+     */
+    roboception::msgs::Trajectory getSlamTrajectory();
 
     /**
      * Convenience method that automatically

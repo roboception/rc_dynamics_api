@@ -333,6 +333,57 @@ void RemoteInterface::deleteDestinationFromStream(const string &stream,
     destinations.erase(found);
 }
 
+roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory()
+{
+
+  // get request on slam module
+  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_slam/services/get_trajectory"};
+  // TODO: parameters for subset of trajectory
+  auto get = cpr::Put(url, cpr::Timeout{_timeoutCurl});
+  handleCPRResponse(get);
+
+  // TODO: find an automatic way to parse Messages from Json
+  // * is possible with protobuf >= 3.0.x
+  // * https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.json_util
+  roboception::msgs::Trajectory pbTraj;
+  auto js = json::parse(get.text)["response"]["trajectory"];
+  json::iterator js_it;
+  if ( (js_it = js.find("parent")) != js.end())
+  {
+    pbTraj.set_parent(js_it.value());
+  }
+  if ( (js_it = js.find("name")) != js.end())
+  {
+    pbTraj.set_name(js_it.value());
+  }
+  if ( (js_it = js.find("producer")) != js.end())
+  {
+    pbTraj.set_producer(js_it.value());
+  }
+  if ( (js_it = js.find("timestamp")) != js.end())
+  {
+    pbTraj.mutable_timestamp()->set_sec(js_it.value()["secs"]); // TODO: sec
+    pbTraj.mutable_timestamp()->set_nsec(js_it.value()["nsecs"]); // TODO: nsec
+  }
+  for (const auto& js_pose : js["poses"])
+  {
+    auto pbPose = pbTraj.add_poses();
+    auto pbTime = pbPose->mutable_timestamp();
+    pbTime->set_sec(js_pose["timestamp"]["secs"]); // TODO: sec
+    pbTime->set_nsec(js_pose["timestamp"]["nsecs"]); // TODO: nsec
+    auto pbPosition = pbPose->mutable_pose()->mutable_position();
+    pbPosition->set_x(js_pose["pose"]["position"]["x"]);
+    pbPosition->set_y(js_pose["pose"]["position"]["y"]);
+    pbPosition->set_z(js_pose["pose"]["position"]["z"]);
+    auto pbOrientation = pbPose->mutable_pose()->mutable_orientation();
+    pbOrientation->set_x(js_pose["pose"]["orientation"]["x"]);
+    pbOrientation->set_y(js_pose["pose"]["orientation"]["y"]);
+    pbOrientation->set_z(js_pose["pose"]["orientation"]["z"]);
+    pbOrientation->set_w(js_pose["pose"]["orientation"]["w"]);
+  }
+  return pbTraj;
+}
+
 
 DataReceiver::Ptr
 RemoteInterface::createReceiverForStream(const string &stream,
