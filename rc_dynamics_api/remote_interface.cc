@@ -51,8 +51,8 @@ namespace dynamics
 const std::string RemoteInterface::State::IDLE="IDLE";
 const std::string RemoteInterface::State::RUNNING="RUNNING";
 const std::string RemoteInterface::State::FATAL="FATAL";
-const std::string RemoteInterface::State::WAITING_FOR_SINS="WAITING_FOR_SINS";
-const std::string RemoteInterface::State::WAITING_FOR_SINS_AND_SLAM="WAITING_FOR_SINS_AND_SLAM";
+const std::string RemoteInterface::State::WAITING_FOR_INS="WAITING_FOR_INS";
+const std::string RemoteInterface::State::WAITING_FOR_INS_AND_SLAM="WAITING_FOR_INS_AND_SLAM";
 const std::string RemoteInterface::State::WAITING_FOR_SLAM="WAITING_FOR_SLAM";
 const std::string RemoteInterface::State::RUNNING_WITH_SLAM="RUNNING_WITH_SLAM";
 
@@ -228,8 +228,8 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
     if(entered_state != State::IDLE and
        entered_state != State::RUNNING and
        entered_state != State::FATAL and
-       entered_state != State::WAITING_FOR_SINS and
-       entered_state != State::WAITING_FOR_SINS_AND_SLAM and
+       entered_state != State::WAITING_FOR_INS and
+       entered_state != State::WAITING_FOR_INS_AND_SLAM and
        entered_state != State::WAITING_FOR_SLAM and
        entered_state != State::RUNNING_WITH_SLAM)
     {
