@@ -61,11 +61,11 @@ void signal_callback_handler(int signum)
  */
 void printUsage(char *arg)
 {
-  cout << "\nRequests a data stream from the specified rc_visard IP "
-          "\nand simply prints received data to std out."
+  cout << "\nStarts rc_visard's dynamics and slam modules for a certain time "
+          "\nperiod, retrieves the Slam trajectory and simply prints it to std out."
        << "\n\nUsage: \n"
        << arg
-       << " -v <rcVisardIP> -s <stream> [-i <networkInterface>][-n <numMessages>]"
+       << " -v <rcVisardIP> [-t <timePeriodSecs>]"
        << endl;
 }
 
@@ -82,35 +82,25 @@ int main(int argc, char *argv[])
 
 
   /**
-   * Parse program options (e.g. IP, desired interface for receiving data, ...)
+   * Parse program options
    */
   string visardIP, networkIface = "", streamName = "";
-  unsigned int maxNumMsgs = 50, cntMsgs = 0;
   bool userSetIp = false;
-  bool userSetStreamType = false;
+  unsigned int maxTimeSecs = 5;
 
   int i=1;
   while (i < argc)
   {
     std::string p=argv[i++];
 
-    if (p == "-s" && i < argc)
-    {
-      streamName = string(argv[i++]);
-      userSetStreamType = true;
-    }
-    else if (p == "-i" && i < argc)
-    {
-      networkIface = string(argv[i++]);
-    }
-    else if (p == "-v" && i < argc)
+    if (p == "-v" && i < argc)
     {
       visardIP = string(argv[i++]);
       userSetIp = true;
     }
-    else if (p == "-n" && i < argc)
+    else if (p == "-t" && i < argc)
     {
-      maxNumMsgs = (unsigned int) std::max(0, atoi(argv[i++]));
+      maxTimeSecs = (unsigned int) std::max(0, atoi(argv[i++]));
     }
     else if (p == "-h")
     {
@@ -129,12 +119,6 @@ int main(int argc, char *argv[])
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
-  if (!userSetStreamType)
-  {
-    cerr << "Please specify stream type." << endl;
-    printUsage(argv[0]);
-    return EXIT_FAILURE;
-  }
 
   /**
    * Instantiate rc::dynamics::RemoteInterface and start streaming
@@ -144,9 +128,9 @@ int main(int argc, char *argv[])
 
   try
   {
-    // start the rc::dynamics module on the rc_visard
-    cout << "starting rc_dynamics module on rc_visard..." << endl;
-    rcvisardDynamics->start();
+    // start the rc::dynamics module with slam on the rc_visard
+    cout << "starting rc_dynamics module with slam on rc_visard..." << endl;
+    rcvisardDynamics->startSlam();
   }
   catch (exception &e)
   {
@@ -155,30 +139,11 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  try
-  {
-    // easy-to-use creation of a data receiver, parameterized via stream type
-    cout << "creating receiver and waiting for first messages to arrive..."
-         << endl;
-    auto receiver = rcvisardDynamics->createReceiverForStream(streamName, networkIface);
-    receiver->setTimeout(250);
 
-    // receive rc_dynamics protobuf msgs and print them
-    for (; cntMsgs < maxNumMsgs && !caught_signal; ++cntMsgs)
-    {
-      auto msg = receiver->receive(
-              rcvisardDynamics->getPbMsgTypeOfStream(streamName));
-      if (msg)
-      {
-        cout << "received msg " << endl << msg->DebugString() << endl;
-      }
-    }
-  }
-  catch (exception &e)
-  {
-    cout << "ERROR during streaming: " << e.what() << endl;
-  }
-
+  /**
+   * simply wait for defined number of secons
+   */
+  usleep(1000 * 1000 * maxTimeSecs);
 
   /**
    * Stopping streaming and clean-up
@@ -187,14 +152,15 @@ int main(int argc, char *argv[])
   {
     cout << "stopping rc_dynamics module on rc_visard..." << endl;
     rcvisardDynamics->stop();
+    roboception::msgs::Trajectory traj = rcvisardDynamics->getSlamTrajectory();
+    cout << "Returned trajectory: " << endl << traj.DebugString() << endl;
+    cout << "Returned trajectory counts " << traj.poses().size() << " waypoints." << endl;
   }
   catch (exception &e)
   {
     cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
          << e.what() << endl;
   }
-
-  cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;
 
 #ifdef WIN32
   ::WSACleanup();
