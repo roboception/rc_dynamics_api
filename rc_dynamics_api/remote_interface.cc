@@ -362,15 +362,15 @@ roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory()
   }
   if ( (js_it = js.find("timestamp")) != js.end())
   {
-    pbTraj.mutable_timestamp()->set_sec(js_it.value()["secs"]); // TODO: sec
-    pbTraj.mutable_timestamp()->set_nsec(js_it.value()["nsecs"]); // TODO: nsec
+    pbTraj.mutable_timestamp()->set_sec(js_it.value()["sec"]); // TODO: sec
+    pbTraj.mutable_timestamp()->set_nsec(js_it.value()["nsec"]); // TODO: nsec
   }
   for (const auto& js_pose : js["poses"])
   {
     auto pbPose = pbTraj.add_poses();
     auto pbTime = pbPose->mutable_timestamp();
-    pbTime->set_sec(js_pose["timestamp"]["secs"]); // TODO: sec
-    pbTime->set_nsec(js_pose["timestamp"]["nsecs"]); // TODO: nsec
+    pbTime->set_sec(js_pose["timestamp"]["sec"]); // TODO: sec
+    pbTime->set_nsec(js_pose["timestamp"]["nsec"]); // TODO: nsec
     auto pbPosition = pbPose->mutable_pose()->mutable_position();
     pbPosition->set_x(js_pose["pose"]["position"]["x"]);
     pbPosition->set_y(js_pose["pose"]["position"]["y"]);
