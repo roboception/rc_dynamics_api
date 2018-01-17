@@ -89,8 +89,8 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
       static const std::string IDLE;     ///< Not yet started or stopped
       static const std::string RUNNING;  ///< Stereo INS is running
       static const std::string FATAL;    ///< An error has occured. May be resolvable by stopping.
-      static const std::string WAITING_FOR_SINS; ///< Waiting for IMU data, will proceed to RUNNING
-      static const std::string WAITING_FOR_SINS_AND_SLAM; ///< Waiting for IMU data, will proceed to WAITING_FOR_SLAM
+      static const std::string WAITING_FOR_INS; ///< Waiting for IMU data, will proceed to RUNNING
+      static const std::string WAITING_FOR_INS_AND_SLAM; ///< Waiting for IMU data, will proceed to WAITING_FOR_SLAM
       static const std::string WAITING_FOR_SLAM;         ///< Stereo INS is running, waiting for SLAM data, will proceed to RUNNING_WITH_SLAM
       static const std::string RUNNING_WITH_SLAM; ///< Stereo INS and SLAM are running.
     };
