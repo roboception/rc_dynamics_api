@@ -333,6 +333,80 @@ void RemoteInterface::deleteDestinationFromStream(const string &stream,
     destinations.erase(found);
 }
 
+namespace {
+
+roboception::msgs::Trajectory toProtobufTrajectory(const json js)
+{
+
+  // TODO: find an automatic way to parse Messages from Json
+  // * is possible with protobuf >= 3.0.x
+  // * https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.json_util
+  roboception::msgs::Trajectory pbTraj;
+
+  json::const_iterator js_it;
+  if ( (js_it = js.find("parent")) != js.end())
+  {
+    pbTraj.set_parent(js_it.value());
+  }
+  if ( (js_it = js.find("name")) != js.end())
+  {
+    pbTraj.set_name(js_it.value());
+  }
+  if ( (js_it = js.find("producer")) != js.end())
+  {
+    pbTraj.set_producer(js_it.value());
+  }
+  if ( (js_it = js.find("timestamp")) != js.end())
+  {
+    pbTraj.mutable_timestamp()->set_sec(js_it.value()["sec"]); // TODO: sec
+    pbTraj.mutable_timestamp()->set_nsec(js_it.value()["nsec"]); // TODO: nsec
+  }
+  for (const auto& js_pose : js["poses"])
+  {
+    auto pbPose = pbTraj.add_poses();
+    auto pbTime = pbPose->mutable_timestamp();
+    pbTime->set_sec(js_pose["timestamp"]["sec"]); // TODO: sec
+    pbTime->set_nsec(js_pose["timestamp"]["nsec"]); // TODO: nsec
+    auto pbPosition = pbPose->mutable_pose()->mutable_position();
+    pbPosition->set_x(js_pose["pose"]["position"]["x"]);
+    pbPosition->set_y(js_pose["pose"]["position"]["y"]);
+    pbPosition->set_z(js_pose["pose"]["position"]["z"]);
+    auto pbOrientation = pbPose->mutable_pose()->mutable_orientation();
+    pbOrientation->set_x(js_pose["pose"]["orientation"]["x"]);
+    pbOrientation->set_y(js_pose["pose"]["orientation"]["y"]);
+    pbOrientation->set_z(js_pose["pose"]["orientation"]["z"]);
+    pbOrientation->set_w(js_pose["pose"]["orientation"]["w"]);
+  }
+  return pbTraj;
+}
+
+}
+
+roboception::msgs::Trajectory
+RemoteInterface::getSlamTrajectory(const TrajectoryTime &start,
+                                   const TrajectoryTime &end)
+{
+  // convert time specification to json obj
+  json js_args, js_time, js_start_time, js_end_time;
+  js_start_time["sec"] = start.getSec();
+  js_start_time["nsec"] = start.getNsec();
+  js_end_time["sec"] = end.getSec();
+  js_end_time["nsec"] = end.getNsec();
+  js_args["args"]["start_time"] = js_start_time;
+  js_args["args"]["end_time"] = js_end_time;
+  if (start.isRelative()) js_args["args"]["start_time_relative"] = true;
+  if (end.isRelative()) js_args["args"]["end_time_relative"] = true;
+
+  // get request on slam module
+  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_slam/services/get_trajectory"};
+  auto get = cpr::Put(url, cpr::Timeout{_timeoutCurl},
+                      cpr::Body{js_args.dump()},
+                      cpr::Header{{"Content-Type", "application/json"}});
+  handleCPRResponse(get);
+
+  auto js = json::parse(get.text)["response"]["trajectory"];
+  return toProtobufTrajectory(js);
+}
 
 DataReceiver::Ptr
 RemoteInterface::createReceiverForStream(const string &stream,

@@ -31,13 +31,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-project(tools CXX)
+project(examples CXX)
 
 # build programs
 
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/../rc_dynamics_api) # generated protobuf headers
+
 add_executable(simple_receiver simple_receiver.cc)
 target_link_libraries(simple_receiver rc_dynamics_api_static)
+
+add_executable(test_slam test_slam.cc)
+target_link_libraries(test_slam rc_dynamics_api_static)
 
 # install tools
 
