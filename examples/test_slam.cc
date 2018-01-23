@@ -153,9 +153,15 @@ int main(int argc, char *argv[])
   {
     cout << "stopping rc_dynamics module on rc_visard..." << endl;
     rcvisardDynamics->stop();
+
+    // get the full trajectory and print number of recorded poses
     roboception::msgs::Trajectory traj = rcvisardDynamics->getSlamTrajectory();
-    cout << "Returned trajectory: " << endl << traj.DebugString() << endl;
-    cout << "Returned trajectory counts " << traj.poses().size() << " waypoints." << endl;
+    cout << "The full trajectory contains " << traj.poses().size() << " waypoints." << endl;
+
+    // print the last second of the trajectory to cout
+    traj = rcvisardDynamics->getSlamTrajectory(TrajectoryTime::RelativeToEnd(1));
+    cout << "The last second of the trajectory contains " << traj.poses().size()
+         << " waypoints and looks like:" << endl << traj.DebugString() << endl;
   }
   catch (exception &e)
   {

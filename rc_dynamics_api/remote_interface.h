@@ -40,6 +40,7 @@
 #include <list>
 #include <memory>
 #include <iostream>
+#include <chrono>
 
 #include "roboception/msgs/frame.pb.h"
 #include "roboception/msgs/dynamics.pb.h"
@@ -48,6 +49,7 @@
 
 #include "data_receiver.h"
 #include "net_utils.h"
+#include "trajectory_time.h"
 
 namespace rc
 {
@@ -218,9 +220,17 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     void deleteAllDestinationsFromStream(const std::string &stream);
 
     /**
-     * Returns the Slam trajectory from the sensor
+     * Returns the Slam trajectory from the sensor.
+     *
+     * Using the start and end arguments only a subsection of the trajectory can
+     * be queried. If both are left empy, the full trajectory is returned.
+     *
+     * @param start specifies the start of the returned trajectory subsection (if empty, the trajectory is returned from its very beginning)
+     * @param end specifies the end of the returned trajectory subsection (if empty, the trajectory is included up to its very end)
      */
-    roboception::msgs::Trajectory getSlamTrajectory();
+    roboception::msgs::Trajectory getSlamTrajectory(
+            const TrajectoryTime &start = TrajectoryTime::RelativeToStart(),
+            const TrajectoryTime &end = TrajectoryTime::RelativeToEnd());
 
     /**
      * Convenience method that automatically

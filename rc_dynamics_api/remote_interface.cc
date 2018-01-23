@@ -333,21 +333,17 @@ void RemoteInterface::deleteDestinationFromStream(const string &stream,
     destinations.erase(found);
 }
 
-roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory()
-{
+namespace {
 
-  // get request on slam module
-  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_slam/services/get_trajectory"};
-  // TODO: parameters for subset of trajectory
-  auto get = cpr::Put(url, cpr::Timeout{_timeoutCurl});
-  handleCPRResponse(get);
+roboception::msgs::Trajectory toProtobufTrajectory(const json js)
+{
 
   // TODO: find an automatic way to parse Messages from Json
   // * is possible with protobuf >= 3.0.x
   // * https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.json_util
   roboception::msgs::Trajectory pbTraj;
-  auto js = json::parse(get.text)["response"]["trajectory"];
-  json::iterator js_it;
+
+  json::const_iterator js_it;
   if ( (js_it = js.find("parent")) != js.end())
   {
     pbTraj.set_parent(js_it.value());
@@ -384,6 +380,33 @@ roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory()
   return pbTraj;
 }
 
+}
+
+roboception::msgs::Trajectory
+RemoteInterface::getSlamTrajectory(const TrajectoryTime &start,
+                                   const TrajectoryTime &end)
+{
+  // convert time specification to json obj
+  json js_args, js_time, js_start_time, js_end_time;
+  js_start_time["sec"] = start.getSec();
+  js_start_time["nsec"] = start.getNsec();
+  js_end_time["sec"] = end.getSec();
+  js_end_time["nsec"] = end.getNsec();
+  js_args["args"]["start_time"] = js_start_time;
+  js_args["args"]["end_time"] = js_end_time;
+  if (start.isRelative()) js_args["args"]["start_time_relative"] = true;
+  if (end.isRelative()) js_args["args"]["end_time_relative"] = true;
+
+  // get request on slam module
+  cpr::Url url = cpr::Url{_baseUrl + "/nodes/rc_slam/services/get_trajectory"};
+  auto get = cpr::Put(url, cpr::Timeout{_timeoutCurl},
+                      cpr::Body{js_args.dump()},
+                      cpr::Header{{"Content-Type", "application/json"}});
+  handleCPRResponse(get);
+
+  auto js = json::parse(get.text)["response"]["trajectory"];
+  return toProtobufTrajectory(js);
+}
 
 DataReceiver::Ptr
 RemoteInterface::createReceiverForStream(const string &stream,

@@ -95,6 +95,7 @@ set(src
     remote_interface.cc
     socket_exception.cc
     unexpected_receive_timeout.cc
+    trajectory_time.cc
     ${CMAKE_CURRENT_BINARY_DIR}/project_version.cc
 )
 
@@ -105,6 +106,7 @@ set(hh
     msg_utils.h
     socket_exception.h
     unexpected_receive_timeout.h
+    trajectory_time.h
     ${CMAKE_CURRENT_BINARY_DIR}/project_version.h
 )
 
