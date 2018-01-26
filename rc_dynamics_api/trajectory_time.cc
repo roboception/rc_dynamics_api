@@ -36,19 +36,28 @@
 
 #include "trajectory_time.h"
 
+namespace rc
+{
 
-TrajectoryTime TrajectoryTime::Absolute(unsigned long sec, unsigned long nsec) {
+TrajectoryTime TrajectoryTime::Absolute(unsigned long sec, unsigned long nsec)
+{
   return TrajectoryTime(sec, nsec, false);
 }
 
-TrajectoryTime TrajectoryTime::RelativeToStart(unsigned long sec, unsigned long nsec) {
+TrajectoryTime
+TrajectoryTime::RelativeToStart(unsigned long sec, unsigned long nsec)
+{
   return TrajectoryTime(sec, nsec, true);
 }
 
-TrajectoryTime TrajectoryTime::RelativeToEnd(unsigned long sec, unsigned long nsec) {
+TrajectoryTime
+TrajectoryTime::RelativeToEnd(unsigned long sec, unsigned long nsec)
+{
   return TrajectoryTime(-sec, -nsec, true);
 }
 
 TrajectoryTime::TrajectoryTime(long sec, long nsec, bool relative) : _relative(
         relative), _sec(sec), _nsec(nsec)
 {}
+
+}

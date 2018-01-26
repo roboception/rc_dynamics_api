@@ -37,6 +37,10 @@
 #ifndef RC_DYNAMICS_API_TRAJECTORY_TIME_H
 #define RC_DYNAMICS_API_TRAJECTORY_TIME_H
 
+
+namespace rc
+{
+
 /**
  * Represents a time stamp to query the trajectory of rcvisard's slam module.
  *
@@ -71,7 +75,8 @@ class TrajectoryTime
      * @param nsec  nanoseconds added to sec
      * @return
      */
-    static TrajectoryTime RelativeToStart(unsigned long sec = 0, unsigned long nsec = 0);
+    static TrajectoryTime
+    RelativeToStart(unsigned long sec = 0, unsigned long nsec = 0);
 
     /**
      * Creates a time stamp from the given values as an offset from the end point
@@ -80,18 +85,26 @@ class TrajectoryTime
      * @param nsec  nanoseconds added to sec
      * @return
      */
-    static TrajectoryTime RelativeToEnd(unsigned long sec = 0, unsigned long nsec = 0);
+    static TrajectoryTime
+    RelativeToEnd(unsigned long sec = 0, unsigned long nsec = 0);
 
-    inline bool isRelative() const { return _relative; }
-    inline long getSec() const { return _sec; }
-    inline long getNsec() const { return _nsec; }
+    inline bool isRelative() const
+    { return _relative; }
+
+    inline long getSec() const
+    { return _sec; }
+
+    inline long getNsec() const
+    { return _nsec; }
 
   protected:
     TrajectoryTime(long sec, long nsec, bool relative);
+
     bool _relative;
     long _sec, _nsec;
 
 };
 
+}
 
 #endif //RC_DYNAMICS_API_TRAJECTORY_TIME_H
