@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
     cout << "The full trajectory contains " << traj.poses().size() << " waypoints." << endl;
 
     // print the last second of the trajectory to cout
-    traj = rcvisardDynamics->getSlamTrajectory(TrajectoryTime::RelativeToEnd(1));
+    traj = rcvisardDynamics->getSlamTrajectory(rc::TrajectoryTime::RelativeToEnd(1));
     cout << "The last second of the trajectory contains " << traj.poses().size()
          << " waypoints and looks like:" << endl << traj.DebugString() << endl;
   }
