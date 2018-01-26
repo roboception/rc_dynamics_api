@@ -36,6 +36,8 @@
 
 #include "trajectory_time.h"
 
+#include <stdexcept>
+
 namespace rc
 {
 
@@ -58,6 +60,11 @@ TrajectoryTime::RelativeToEnd(unsigned long sec, unsigned long nsec)
 
 TrajectoryTime::TrajectoryTime(long sec, long nsec, bool relative) : _relative(
         relative), _sec(sec), _nsec(nsec)
-{}
+{
+  if (!relative && (sec < 0 || nsec < 0))
+  {
+    throw std::invalid_argument("Negative values for sec or nsec are only allowed for relative time specification!");
+  }
+}
 
 }

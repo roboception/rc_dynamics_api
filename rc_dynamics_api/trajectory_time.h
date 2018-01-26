@@ -88,6 +88,16 @@ class TrajectoryTime
     static TrajectoryTime
     RelativeToEnd(unsigned long sec = 0, unsigned long nsec = 0);
 
+
+    /**
+     * Full constructor for specifiying a time either as relative offset or as
+     * absolute timestamp
+     * @param sec seconds of absolute timestamp, or of relative offset to either trajectory start (positive values) or trajectory end (negative values)
+     * @param nsec nanoseconds of absolute timestamp, or of relative offset to either trajectory start (positive values) or trajectory end (negative values)
+     * @param relative if true, sec and nsec values are treated as relative offset; otherwise they are treated as absolute timestamp
+     */
+    TrajectoryTime(long sec, long nsec, bool relative);
+
     inline bool isRelative() const
     { return _relative; }
 
@@ -98,8 +108,6 @@ class TrajectoryTime
     { return _nsec; }
 
   protected:
-    TrajectoryTime(long sec, long nsec, bool relative);
-
     bool _relative;
     long _sec, _nsec;
 
