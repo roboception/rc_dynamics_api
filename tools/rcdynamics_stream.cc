@@ -215,15 +215,24 @@ int main(int argc, char *argv[])
   {
     try
     {
-      // start the rc::dynamics module on the rc_visard
-      cout << "starting rc_dynamics module on rc_visard..." << endl;
-      rcvisardDynamics->start();
+      cout << "starting SLAM on rc_visard..." << endl;
+      rcvisardDynamics->startSlam();
     }
     catch (exception &e)
     {
-      cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-          << e.what() << endl;
-      return EXIT_FAILURE;
+      try
+      {
+        // start the rc::dynamics module on the rc_visard
+        cout << "SLAM not available!" << endl;
+        cout << "starting stereo INS on rc_visard..." << endl;
+        rcvisardDynamics->start();
+      }
+      catch (exception &e)
+      {
+        cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
+            << e.what() << endl;
+        return EXIT_FAILURE;
+      }
     }
   }
 
