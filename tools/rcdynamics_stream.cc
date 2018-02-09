@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
       cout << "starting SLAM on rc_visard..." << endl;
       rcvisardDynamics->startSlam();
     }
-    catch (exception &e)
+    catch (exception &)
     {
       try
       {

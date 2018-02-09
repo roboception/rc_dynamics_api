@@ -241,7 +241,7 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
 
     accepted = j["response"]["accepted"].get<bool>();
   }
-  catch (std::logic_error& json_exception)
+  catch (std::logic_error&)
   {
     //Maybe old interface version? If so just return the numeric code
     //as string - it isn't used by the tools using the old interface
@@ -249,7 +249,7 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
     {
       entered_state = std::to_string(j["response"]["enteredState"].get<int>());
     }
-    catch (std::logic_error& json_exception)
+    catch (std::logic_error&)
     {
       //Real problem (may even be unrelated to parsing json. Let the user see what the response is.
       cerr << "Logic error when parsing the response of a service call to rc_dynamics!\n";

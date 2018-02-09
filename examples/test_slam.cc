@@ -144,7 +144,12 @@ int main(int argc, char *argv[])
    * simply wait for defined number of secons
    */
   cout << "running..." << endl;
-  usleep(1000 * 1000 * maxTimeSecs);
+
+#ifdef WIN32
+  Sleep(1000*maxTimeSecs);
+#else
+  usleep(1000*1000*maxTimeSecs);
+#endif
 
   /**
    * Stopping streaming and clean-up
