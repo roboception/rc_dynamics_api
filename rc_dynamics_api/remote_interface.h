@@ -106,6 +106,14 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
         : runtime_error("Invalid state encountered: " + encountered_state){}
     };
 
+    ///Thrown if a service call is not accepted
+    class not_accepted : public std::runtime_error
+    {
+      public:
+      explicit not_accepted(std::string serviceName)
+        : runtime_error("Service call not accepted: " + serviceName){}
+    };
+
     /**
      * Creates a local instance of rc_visard's remote pose interface
      *

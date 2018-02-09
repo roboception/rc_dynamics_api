@@ -222,6 +222,8 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   std::string entered_state;
+  bool accepted=true;
+
   try
   {
     entered_state = j["response"]["current_state"].get<std::string>();
@@ -236,6 +238,8 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
       //mismatch between rc_dynamics states and states used in this class?
       throw invalid_state(entered_state);
     }
+
+    accepted = j["response"]["accepted"].get<bool>();
   }
   catch (std::logic_error& json_exception)
   {
@@ -255,6 +259,12 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
       throw;
     }
   }
+
+  if (!accepted)
+  {
+    throw not_accepted(serviceName);
+  }
+
   return entered_state;
 }
 
