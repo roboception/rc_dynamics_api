@@ -52,8 +52,6 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELEASE CACHE STRING "Build type: DEBUG or RELEASE" FORCE)
 endif ()
 
-include(cmake/optimization_flags.cmake)
-
 # - Standard definitions -
 
 add_definitions(-Wall)
@@ -65,7 +63,7 @@ endif ()
 
 if (MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-  
+
   # Switching off some compiler warnings
 
   add_definitions("/wd4061")
@@ -129,6 +127,9 @@ include(cmake/configure_link_libs.cmake)
 if (BUILD_DOC)
   add_subdirectory(doc)
 endif()
+
+# Install catkin package.xml
+install(FILES package.xml COMPONENT dev DESTINATION share/${PROJECT_NAME_LOWER})
 
 # - Define information for packaging -
 
