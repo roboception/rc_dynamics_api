@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>rc_dynamics_api</name>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
     <description>
       The rc_dynamics_api provides an API for easy handling of the dynamic-state data
       streams provided by Roboception's stereo camera with self-localization.

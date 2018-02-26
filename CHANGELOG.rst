@@ -1,8 +1,9 @@
-Forthcoming
------------
+0.5.0 (2018-02-26)
+------------------
 
-* Adapt to latest version of rc_dynamics, i.e.,
-  added start_slam, restart_slam and stop_slam functionality
+* Updates for rc_visard image version v1.1.x with support for SLAM
+* added startSlam, restartSlam, stopSlam and getTrajectory
+* support Windows build
 
 0.4.0 (2017-09-27)
 ------------------
