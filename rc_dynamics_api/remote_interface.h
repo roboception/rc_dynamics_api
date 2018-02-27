@@ -172,6 +172,14 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     std::string stopSlam();
 
     /**
+     * Resets the SLAM module
+     * The Stereo INS will keep running, if it is.
+     * @return the entered state (of the SLAM module). Note that this can be an intermediate state.
+     * @throw invalid_state if the entered state does not match the known states in State
+     */
+    std::string resetSlam();
+
+    /**
      * Returns a list all available streams on rc_visard
      * @return
      */
@@ -278,6 +286,7 @@ class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
     void checkStreamTypeAvailable(const std::string& stream);
     ///Common functionality for start(), startSlam(), stop(), ...
     std::string callDynamicsService(std::string serviceName);
+    std::string callSlamService(std::string serviceName);
 
     std::string _visardAddrs;
     std::map<std::string, std::list<std::string>> _reqStreams;
