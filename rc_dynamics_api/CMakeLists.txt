@@ -33,11 +33,11 @@
 
 project(rc_dynamics_api CXX)
 
-## Adding cpr, json and protobuf libraries
-##########################################
+## Adding cpr and protobuf libraries
+####################################
 
 add_subdirectory(opt)
-include_directories(${CPR_INCLUDE_DIRS} ${JSON_INCLUDE_DIRS} ${PROTOBUF_INCLUDE_DIR})
+include_directories(${CPR_INCLUDE_DIRS} ${PROTOBUF_INCLUDE_DIR})
 
 ## Compiling and building protobuf messages into a library
 ##########################################################

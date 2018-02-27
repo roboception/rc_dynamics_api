@@ -22,9 +22,6 @@ packages cannot be found on the system:
 Requesting and deleting data streams is done via rc_visard's REST-API. This
 library provides an easy-to-use interface for doing REST-API calls.
 
-- **[JSON for Modern C++](https://github.com/nlohmann/json) (version v2.0.0):**
-A simple and modern C++ JSON parsing library.
-
 - **[Google Protocol Buffers:](https://developers.google.com/protocol-buffers/)**
 The data sent via rc_visard's data streams is serialized via Google protocol
 message definitions (/roboception/msgs). After receiving the data, the
@@ -36,6 +33,10 @@ After cloning the git repository, the packages described above are cloned as
 submodules by:
 
     git submodule update --init --recursive
+
+Additionally this packages uses the single header file of
+- **[JSON for Modern C++](https://github.com/nlohmann/json) (version v2.0.0):**
+A simple and modern C++ JSON parsing library.
 
 ### Linux
 
