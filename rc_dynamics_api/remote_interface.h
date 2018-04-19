@@ -55,8 +55,6 @@ namespace rc
 {
 namespace dynamics
 {
-
-
 /**
  * Simple remote interface to access the dynamic state estimates
  * of an rc_visard device as data streams.
@@ -80,224 +78,216 @@ namespace dynamics
  */
 class RemoteInterface : public std::enable_shared_from_this<RemoteInterface>
 {
+public:
+  using Ptr = std::shared_ptr<RemoteInterface>;
+
+  /// An enum mirroring the state-machine states enum in rc_dynamics/dynamicsRos.h.
+  /// The latter is only available on the visard, therefore not included directly.
+  struct State
+  {
+    static const std::string IDLE;                      ///< Not yet started or stopped
+    static const std::string RUNNING;                   ///< Stereo INS is running
+    static const std::string FATAL;                     ///< An error has occured. May be resolvable by stopping.
+    static const std::string WAITING_FOR_INS;           ///< Waiting for IMU data, will proceed to RUNNING
+    static const std::string WAITING_FOR_INS_AND_SLAM;  ///< Waiting for IMU data, will proceed to WAITING_FOR_SLAM
+    static const std::string WAITING_FOR_SLAM;   ///< Stereo INS is running, waiting for SLAM data, will proceed to
+                                                 ///RUNNING_WITH_SLAM
+    static const std::string RUNNING_WITH_SLAM;  ///< Stereo INS and SLAM are running.
+  };
+
+  /// Thrown if the current_state response of the dynamics service does not correspond to those
+  /// in the State struct
+  class invalid_state : public std::runtime_error
+  {
   public:
-
-    using Ptr = std::shared_ptr<RemoteInterface>;
-
-    ///An enum mirroring the state-machine states enum in rc_dynamics/dynamicsRos.h.
-    ///The latter is only available on the visard, therefore not included directly.
-    struct State
+    explicit invalid_state(std::string encountered_state)
+      : runtime_error("Invalid state encountered: " + encountered_state)
     {
-      static const std::string IDLE;     ///< Not yet started or stopped
-      static const std::string RUNNING;  ///< Stereo INS is running
-      static const std::string FATAL;    ///< An error has occured. May be resolvable by stopping.
-      static const std::string WAITING_FOR_INS; ///< Waiting for IMU data, will proceed to RUNNING
-      static const std::string WAITING_FOR_INS_AND_SLAM; ///< Waiting for IMU data, will proceed to WAITING_FOR_SLAM
-      static const std::string WAITING_FOR_SLAM;         ///< Stereo INS is running, waiting for SLAM data, will proceed to RUNNING_WITH_SLAM
-      static const std::string RUNNING_WITH_SLAM; ///< Stereo INS and SLAM are running.
-    };
+    }
+  };
 
-    ///Thrown if the current_state response of the dynamics service does not correspond to those
-    ///in the State struct
-    class invalid_state : public std::runtime_error
+  /// Thrown if a service call is not accepted
+  class not_accepted : public std::runtime_error
+  {
+  public:
+    explicit not_accepted(std::string serviceName) : runtime_error("Service call not accepted: " + serviceName)
     {
-      public:
-      explicit invalid_state(std::string encountered_state)
-        : runtime_error("Invalid state encountered: " + encountered_state){}
-    };
+    }
+  };
 
-    ///Thrown if a service call is not accepted
-    class not_accepted : public std::runtime_error
-    {
-      public:
-      explicit not_accepted(std::string serviceName)
-        : runtime_error("Service call not accepted: " + serviceName){}
-    };
+  /**
+   * Creates a local instance of rc_visard's remote pose interface
+   *
+   * @param rcVisardIP rc_visard's inet address as string, e.g "192.168.0.12"
+   * @param requestsTimeout timeout in [ms] for doing REST-API calls
+   */
+  static Ptr create(const std::string& rcVisardIP, unsigned int requestsTimeout = 5000);
 
-    /**
-     * Creates a local instance of rc_visard's remote pose interface
-     *
-     * @param rcVisardIP rc_visard's inet address as string, e.g "192.168.0.12"
-     * @param requestsTimeout timeout in [ms] for doing REST-API calls
-     */
-    static Ptr create(const std::string &rcVisardIP,
-               unsigned int requestsTimeout = 5000);
+  virtual ~RemoteInterface();
 
-    virtual ~RemoteInterface();
+  /**
+   * Sets rc_dynamics module to running state.
+   * Only start the Stereo INS. To start SLAM use startSlam().
+   * To restart use the restart() method.
+   * @return the entered state. Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string start();
+  /**
+   * Sets rc_dynamics module to running state.
+   * Also starts up the Stereo INS, if not already running.
+   * @return the entered state. Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string startSlam();
+  /**
+   * Restarts the rc_dynamics module to Stereo INS only mode.
+   * Equivalent to stop() and start()
+   * @return the entered state. Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string restart();
 
-    /**
-     * Sets rc_dynamics module to running state.
-     * Only start the Stereo INS. To start SLAM use startSlam().
-     * To restart use the restart() method.
-     * @return the entered state. Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string start();
-    /**
-     * Sets rc_dynamics module to running state.
-     * Also starts up the Stereo INS, if not already running.
-     * @return the entered state. Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string startSlam();
-    /**
-     * Restarts the rc_dynamics module to Stereo INS only mode.
-     * Equivalent to stop() and start()
-     * @return the entered state. Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string restart();
+  /**
+   * Restarts the rc_dynamics module to SLAM mode.
+   * Equivalent to stop() and startSlam()
+   * @return the entered state. Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string restartSlam();
 
-    /**
-     * Restarts the rc_dynamics module to SLAM mode.
-     * Equivalent to stop() and startSlam()
-     * @return the entered state. Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string restartSlam();
+  /**
+   * Stops rc_dynamics module. If SLAM is running it will be stopped too.
+   * @return the entered state. Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string stop();
 
-    /**
-     * Stops rc_dynamics module. If SLAM is running it will be stopped too.
-     * @return the entered state. Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string stop();
+  /**
+   * Stops only the SLAM module (via the rc_dynamics module).
+   * The Stereo INS will keep running.
+   * @return the entered state. Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string stopSlam();
 
-    /**
-     * Stops only the SLAM module (via the rc_dynamics module).
-     * The Stereo INS will keep running.
-     * @return the entered state. Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string stopSlam();
+  /**
+   * Resets the SLAM module
+   * The Stereo INS will keep running, if it is.
+   * @return the entered state (of the SLAM module). Note that this can be an intermediate state.
+   * @throw invalid_state if the entered state does not match the known states in State
+   */
+  std::string resetSlam();
 
-    /**
-     * Resets the SLAM module
-     * The Stereo INS will keep running, if it is.
-     * @return the entered state (of the SLAM module). Note that this can be an intermediate state.
-     * @throw invalid_state if the entered state does not match the known states in State
-     */
-    std::string resetSlam();
+  /**
+   * Returns a list all available streams on rc_visard
+   * @return
+   */
+  std::list<std::string> getAvailableStreams();
 
-    /**
-     * Returns a list all available streams on rc_visard
-     * @return
-     */
-    std::list<std::string> getAvailableStreams();
+  /**
+   * Returns the name of the protobuf message class that corresponds to a
+   * given data stream and is required for de-serializing the respective
+   * messages.
+   *
+   * @param stream a specific rc_dynamics data stream (e.g. "pose", "pose_rt" or "dynamics")
+   * @return the corresponding protobuf message type as string (e.g. "Frame" or "Dynamics")
+   */
+  std::string getPbMsgTypeOfStream(const std::string& stream);
 
-    /**
-     * Returns the name of the protobuf message class that corresponds to a
-     * given data stream and is required for de-serializing the respective
-     * messages.
-     *
-     * @param stream a specific rc_dynamics data stream (e.g. "pose", "pose_rt" or "dynamics")
-     * @return the corresponding protobuf message type as string (e.g. "Frame" or "Dynamics")
-     */
-    std::string getPbMsgTypeOfStream(const std::string &stream);
+  /**
+   * Returns a list of all destinations registered to the specified
+   * rc_dynamics stream.
+   * Streams here are represented as their destinations using IP address and
+   * port number.
+   *
+   * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
+   * @return list of destinations of represented as strings, e.g. "192.168.0.1:30000"
+   */
+  std::list<std::string> getDestinationsOfStream(const std::string& stream);
 
+  /**
+   * Adds a destination to a stream, i.e. request rc_visard to stream data of
+   * the specified type to the given destination.
+   *
+   * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
+   * @param destination string-represented destination of the data stream, e.g. "192.168.0.1:30000"
+   */
+  void addDestinationToStream(const std::string& stream, const std::string& destination);
 
-    /**
-     * Returns a list of all destinations registered to the specified
-     * rc_dynamics stream.
-     * Streams here are represented as their destinations using IP address and
-     * port number.
-     *
-     * @param stream a specific rc_dynamics data stream (e.g. "pose" or "dynamics")
-     * @return list of destinations of represented as strings, e.g. "192.168.0.1:30000"
-     */
-    std::list<std::string> getDestinationsOfStream(const std::string &stream);
+  /**
+   * Deletes a destination from a stream, i.e. request rc_visard to stop
+   * streaming data of the specified type to the given destination.
+   *
+   * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
+   * @param destination string-represented destination of the data stream, e.g. "192.168.0.1:30000"
+   */
+  void deleteDestinationFromStream(const std::string& stream, const std::string& destination);
 
+  /**
+   * Deletes all destinations from a stream.
+   *
+   * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
+   */
+  void deleteAllDestinationsFromStream(const std::string& stream);
 
-    /**
-     * Adds a destination to a stream, i.e. request rc_visard to stream data of
-     * the specified type to the given destination.
-     *
-     * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
-     * @param destination string-represented destination of the data stream, e.g. "192.168.0.1:30000"
-     */
-    void addDestinationToStream(const std::string &stream,
-                                const std::string &destination);
+  /**
+   * Returns the Slam trajectory from the sensor.
+   *
+   * Using the start and end arguments only a subsection of the trajectory can
+   * be queried. If both are left empy, the full trajectory is returned.
+   *
+   * @param start specifies the start of the returned trajectory subsection (if empty, the trajectory is returned from
+   * its very beginning)
+   * @param end specifies the end of the returned trajectory subsection (if empty, the trajectory is included up to its
+   * very end)
+   */
+  roboception::msgs::Trajectory getSlamTrajectory(const TrajectoryTime& start = TrajectoryTime::RelativeToStart(),
+                                                  const TrajectoryTime& end = TrajectoryTime::RelativeToEnd());
 
-    /**
-     * Deletes a destination from a stream, i.e. request rc_visard to stop
-     * streaming data of the specified type to the given destination.
-     *
-     * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
-     * @param destination string-represented destination of the data stream, e.g. "192.168.0.1:30000"
-     */
-    void deleteDestinationFromStream(const std::string &stream,
-                                     const std::string &destination);
+  /**
+   * Convenience method that automatically
+   *
+   *  1) creates a data receiver (including binding socket to a local network interface)
+   *  2) adds a destination to the respective stream on rc_visard device
+   *  3) waits/checks for the stream being established
+   *  4) (removes the destination automatically from rc_visard device if data receiver is no longer used)
+   *
+   * Stream can only be established successfully if rc_dynamics module is running on
+   * rc_visard, see (re)start(_slam) methods.
+   *
+   *
+   * If desired interface for receiving is unspecified (or "") this host's
+   * network interfaces are scanned to find a suitable IP address among those.
+   * Similar, if port number is unspecified (or 0) it will be assigned
+   * arbitrarily as available by network interface layer.
+   *
+   * @param destInterface empty or one of this hosts network interfaces, e.g. "eth0"
+   * @param destPort 0 or this hosts port number
+   * @return true, if stream could be initialized successfully
+   */
+  DataReceiver::Ptr createReceiverForStream(const std::string& stream, const std::string& destInterface = "",
+                                            unsigned int destPort = 0);
 
-    /**
-     * Deletes all destinations from a stream.
-     *
-     * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
-     */
-    void deleteAllDestinationsFromStream(const std::string &stream);
+protected:
+  static std::map<std::string, RemoteInterface::Ptr> _remoteInterfaces;
 
-    /**
-     * Returns the Slam trajectory from the sensor.
-     *
-     * Using the start and end arguments only a subsection of the trajectory can
-     * be queried. If both are left empy, the full trajectory is returned.
-     *
-     * @param start specifies the start of the returned trajectory subsection (if empty, the trajectory is returned from its very beginning)
-     * @param end specifies the end of the returned trajectory subsection (if empty, the trajectory is included up to its very end)
-     */
-    roboception::msgs::Trajectory getSlamTrajectory(
-            const TrajectoryTime &start = TrajectoryTime::RelativeToStart(),
-            const TrajectoryTime &end = TrajectoryTime::RelativeToEnd());
+  RemoteInterface(const std::string& rcVisardIP, unsigned int requestsTimeout = 5000);
 
-    /**
-     * Convenience method that automatically
-     *
-     *  1) creates a data receiver (including binding socket to a local network interface)
-     *  2) adds a destination to the respective stream on rc_visard device
-     *  3) waits/checks for the stream being established
-     *  4) (removes the destination automatically from rc_visard device if data receiver is no longer used)
-     *
-     * Stream can only be established successfully if rc_dynamics module is running on
-     * rc_visard, see (re)start(_slam) methods.
-     *
-     *
-     * If desired interface for receiving is unspecified (or "") this host's
-     * network interfaces are scanned to find a suitable IP address among those.
-     * Similar, if port number is unspecified (or 0) it will be assigned
-     * arbitrarily as available by network interface layer.
-     *
-     * @param destInterface empty or one of this hosts network interfaces, e.g. "eth0"
-     * @param destPort 0 or this hosts port number
-     * @return true, if stream could be initialized successfully
-     */
-    DataReceiver::Ptr
-    createReceiverForStream(const std::string &stream,
-                            const std::string &destInterface = "",
-                            unsigned int destPort = 0);
+  void cleanUpRequestedStreams();
+  void checkStreamTypeAvailable(const std::string& stream);
+  /// Common functionality for start(), startSlam(), stop(), ...
+  std::string callDynamicsService(std::string serviceName);
+  std::string callSlamService(std::string serviceName);
 
-
-  protected:
-
-    static std::map<std::string, RemoteInterface::Ptr> _remoteInterfaces;
-
-    RemoteInterface(const std::string& rcVisardIP,
-                    unsigned int requestsTimeout = 5000);
-
-    void cleanUpRequestedStreams();
-    void checkStreamTypeAvailable(const std::string& stream);
-    ///Common functionality for start(), startSlam(), stop(), ...
-    std::string callDynamicsService(std::string serviceName);
-    std::string callSlamService(std::string serviceName);
-
-    std::string _visardAddrs;
-    std::map<std::string, std::list<std::string>> _reqStreams;
-    std::list<std::string> _availStreams;
-    std::map<std::string, std::string> _protobufMap;
-    std::string _baseUrl;
-    int _timeoutCurl;
+  std::string _visardAddrs;
+  std::map<std::string, std::list<std::string>> _reqStreams;
+  std::list<std::string> _availStreams;
+  std::map<std::string, std::string> _protobufMap;
+  std::string _baseUrl;
+  int _timeoutCurl;
 };
-
 }
 }
 
-
-#endif //RC_DYNAMICS_API_REMOTEINTERFACE_H
+#endif  // RC_DYNAMICS_API_REMOTEINTERFACE_H

@@ -39,41 +39,36 @@ namespace rc
 {
 namespace dynamics
 {
-
 /**
  * @brief Exception representing an invalid socket operation.
  */
 class SocketException : public std::runtime_error
 {
-  public:
-    /**
-     * @brief Constructor.
-     * @param msg error message
-     * @param errnum error code
-     */
-    SocketException(const std::string &msg, int errnum);
+public:
+  /**
+   * @brief Constructor.
+   * @param msg error message
+   * @param errnum error code
+   */
+  SocketException(const std::string& msg, int errnum);
 
-    virtual ~SocketException() = default;
+  virtual ~SocketException() = default;
 
-    /**
-     * @brief Returns error message.
-     * @return error message
-     */
-    virtual const char *
-    what() const noexcept override;
+  /**
+   * @brief Returns error message.
+   * @return error message
+   */
+  virtual const char* what() const noexcept override;
 
-    /**
-     * @brief Returns error code.
-     * @return error code
-     */
-    int get_error_code() const noexcept;
+  /**
+   * @brief Returns error code.
+   * @return error code
+   */
+  int get_error_code() const noexcept;
 
-  private:
-    const int errnum_;
-    const std::string msg_;
+private:
+  const int errnum_;
+  const std::string msg_;
 };
-
-
-
 }
 }

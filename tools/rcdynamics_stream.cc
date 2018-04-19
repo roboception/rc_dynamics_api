@@ -56,26 +56,25 @@ using namespace rc::dynamics;
 static bool caught_signal = false;
 void signal_callback_handler(int signum)
 {
-  printf("Caught signal %d, stopping program!\n",signum);
+  printf("Caught signal %d, stopping program!\n", signum);
   caught_signal = true;
 }
 
 /**
  * Print usage of example including command line args
  */
-void printUsage(char *arg)
+void printUsage(char* arg)
 {
   cout << "\nLists available rcdynamics data streams of the specified rc_visard IP, "
           "\nor requests a data stream and either prints received messages or records "
           "\nthem as csv-file, see -o option."
        << "\n\nUsage: \n"
-       << arg
-       << " -v <rcVisardIP> -l | -s <stream> [-a] [-i <networkInterface>]"
-          " [-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
+       << arg << " -v <rcVisardIP> -l | -s <stream> [-a] [-i <networkInterface>]"
+                 " [-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
        << endl;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 #ifdef WIN32
   WSADATA wsaData;
@@ -99,10 +98,10 @@ int main(int argc, char *argv[])
   bool userSetStreamType = false;
   bool onlyListStreams = false;
 
-  int i=1;
+  int i = 1;
   while (i < argc)
   {
-    std::string p=argv[i++];
+    std::string p = argv[i++];
 
     if (p == "-l")
     {
@@ -128,12 +127,12 @@ int main(int argc, char *argv[])
     }
     else if (p == "-n" && i < argc)
     {
-      maxNumRecordingMsgs = (unsigned int) std::max(0, atoi(argv[i++]));
+      maxNumRecordingMsgs = (unsigned int)std::max(0, atoi(argv[i++]));
       userSetMaxNumMsgs = true;
     }
     else if (p == "-t" && i < argc)
     {
-      maxRecordingTimeSecs = (unsigned int) std::max(0, atoi(argv[i++]));
+      maxRecordingTimeSecs = (unsigned int)std::max(0, atoi(argv[i++]));
       userSetRecordingTime = true;
     }
     else if (p == "-o" && i < argc)
@@ -181,8 +180,7 @@ int main(int argc, char *argv[])
     outputFile.open(outputFileName);
     if (!outputFile.is_open())
     {
-      cerr << "Could not open file '" << outputFileName << "' for writing!"
-           << endl;
+      cerr << "Could not open file '" << outputFileName << "' for writing!" << endl;
       return EXIT_FAILURE;
     }
   }
@@ -218,7 +216,7 @@ int main(int argc, char *argv[])
       cout << "starting SLAM on rc_visard..." << endl;
       rcvisardDynamics->startSlam();
     }
-    catch (exception &)
+    catch (exception&)
     {
       try
       {
@@ -227,10 +225,9 @@ int main(int argc, char *argv[])
         cout << "starting stereo INS on rc_visard..." << endl;
         rcvisardDynamics->start();
       }
-      catch (exception &e)
+      catch (exception& e)
       {
-        cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-            << e.what() << endl;
+        cout << "ERROR! Could not start rc_dynamics module on rc_visard: " << e.what() << endl;
         return EXIT_FAILURE;
       }
     }
@@ -251,18 +248,15 @@ int main(int argc, char *argv[])
 
     chrono::time_point<chrono::system_clock> start = chrono::system_clock::now();
     chrono::duration<double> elapsedSecs(0);
-    while (!caught_signal
-           && (!userSetMaxNumMsgs || cntMsgs < maxNumRecordingMsgs)
-           && (!userSetRecordingTime ||
-               elapsedSecs.count() < maxRecordingTimeSecs)
-            )
+    while (!caught_signal && (!userSetMaxNumMsgs || cntMsgs < maxNumRecordingMsgs) &&
+           (!userSetRecordingTime || elapsedSecs.count() < maxRecordingTimeSecs))
     {
       auto msg = receiver->receive(rcvisardDynamics->getPbMsgTypeOfStream(streamName));
       if (msg)
       {
         if (outputFile.is_open())
         {
-          if (cntMsgs==0)
+          if (cntMsgs == 0)
           {
             csv::Header h;
             outputFile << (h << *msg) << endl;
@@ -272,25 +266,21 @@ int main(int argc, char *argv[])
         }
         else
         {
-          cout << "received " << streamName << " msg:" << endl
-               << msg->DebugString() << endl;
+          cout << "received " << streamName << " msg:" << endl << msg->DebugString() << endl;
         }
         ++cntMsgs;
       }
       else
       {
-        cerr << "did not receive any data during last " << timeoutMillis
-             << " ms." << endl;
+        cerr << "did not receive any data during last " << timeoutMillis << " ms." << endl;
       }
       elapsedSecs = chrono::system_clock::now() - start;
     }
-
   }
-  catch (exception &e)
+  catch (exception& e)
   {
     cout << "Caught exception during streaming, stopping: " << e.what() << endl;
   }
-
 
   /**
    * Stopping streaming and clean-up
@@ -303,7 +293,7 @@ int main(int argc, char *argv[])
       cout << "stopping rc_dynamics module on rc_visard..." << endl;
       rcvisardDynamics->stop();
     }
-    catch (exception &e)
+    catch (exception& e)
     {
       cout << "Caught exception: " << e.what() << endl;
     }
@@ -312,8 +302,7 @@ int main(int argc, char *argv[])
   if (outputFile.is_open())
   {
     outputFile.close();
-    cout << "Recorded " << cntMsgs << " " << streamName << " messages to '"
-         << outputFileName << "'." << endl;
+    cout << "Recorded " << cntMsgs << " " << streamName << " messages to '" << outputFileName << "'." << endl;
   }
   else
   {

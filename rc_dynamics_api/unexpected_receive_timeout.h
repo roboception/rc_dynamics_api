@@ -33,7 +33,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef RC_DYNAMICS_API_UNEXPECTED_RECEIVE_TIMEOUT_H
 #define RC_DYNAMICS_API_UNEXPECTED_RECEIVE_TIMEOUT_H
 
@@ -43,7 +42,6 @@ namespace rc
 {
 namespace dynamics
 {
-
 /**
  * Exception handling cases where actually everything should be fine and
  * rc_visard's dynamic state estimates should be received, but it is not.
@@ -52,26 +50,26 @@ namespace dynamics
  */
 class UnexpectedReceiveTimeout : public std::runtime_error
 {
-  public:
+public:
+  /**
+   * @brief Constructor.
+   * @param timeoutMillis time out in milli seconds
+   */
+  UnexpectedReceiveTimeout(unsigned int timeoutMillis);
 
-    /**
-     * @brief Constructor.
-     * @param timeoutMillis time out in milli seconds
-     */
-    UnexpectedReceiveTimeout(unsigned int timeoutMillis);
+  /**
+   * @brief Returns the corresponding timeout in milli seconds
+   * @return timeout that was received unexpectedly (in ms)
+   */
+  inline unsigned int getTimeout() const noexcept
+  {
+    return _timeout;
+  }
 
-    /**
-     * @brief Returns the corresponding timeout in milli seconds
-     * @return timeout that was received unexpectedly (in ms)
-     */
-    inline unsigned int getTimeout() const noexcept { return _timeout; }
-
-  protected:
-    unsigned int _timeout;
+protected:
+  unsigned int _timeout;
 };
-
 }
 }
 
-
-#endif //RC_DYNAMICS_API_UNEXPECTED_RECEIVE_TIMEOUT_H
+#endif  // RC_DYNAMICS_API_UNEXPECTED_RECEIVE_TIMEOUT_H

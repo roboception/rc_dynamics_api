@@ -33,7 +33,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef RC_DYNAMICS_API_CSV_PRINTING_H_H
 #define RC_DYNAMICS_API_CSV_PRINTING_H_H
 
@@ -55,45 +54,43 @@
 #endif
 #endif
 
-namespace csv {
-
-
+namespace csv
+{
 /**
  * struct and methods to "organice" printing of csv-Headers
  */
-struct Header {
-
+struct Header
+{
   std::vector<std::string> _fields;
   std::string _prefix;
 
-  static Header
-  prefixed(const std::string &p, const ::google::protobuf::Message &m)
+  static Header prefixed(const std::string& p, const ::google::protobuf::Message& m)
   {
     Header header;
     header._prefix = p;
     return header << m;
   }
 
-  Header& operator <<(const std::string &field)
+  Header& operator<<(const std::string& field)
   {
     _fields.insert(std::end(_fields), _prefix + field);
     return *this;
   }
 
-  Header& operator <<(const Header &other)
+  Header& operator<<(const Header& other)
   {
     for (auto&& f : other._fields)
       _fields.insert(std::end(_fields), _prefix + f);
     return *this;
   }
 
-  Header& operator <<(const ::google::protobuf::Message &m)
+  Header& operator<<(const ::google::protobuf::Message& m)
   {
     using namespace ::google::protobuf;
 
     auto descr = m.GetDescriptor();
     auto refl = m.GetReflection();
-    for (int i=0; i<descr->field_count(); ++i)
+    for (int i = 0; i < descr->field_count(); ++i)
     {
       auto field = descr->field(i);
 
@@ -102,15 +99,14 @@ struct Header {
         int size = refl->FieldSize(m, field);
         if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
         {
-          for (int k=0; k<size; k++)
+          for (int k = 0; k < size; k++)
           {
-            *this << prefixed(field->name() + '_' + std::to_string(k),
-                              refl->GetMessage(m, field));
+            *this << prefixed(field->name() + '_' + std::to_string(k), refl->GetMessage(m, field));
           }
         }
         else
         {
-          for (int k=0; k<size; k++)
+          for (int k = 0; k < size; k++)
           {
             *this << field->name() + "_" + std::to_string(k);
           }
@@ -127,14 +123,11 @@ struct Header {
           *this << field->name();
         }
       }
-
     }
 
     return *this;
   }
-
 };
-
 
 /**
  * struct and methods to "organice" printing of csv-Lines
@@ -143,92 +136,93 @@ struct Line
 {
   std::vector<std::string> _entries;
 
-
-  Line& operator <<(const std::string &t)
+  Line& operator<<(const std::string& t)
   {
     this->_entries.insert(std::end(this->_entries), t);
     return *this;
   }
 
-  Line &operator<<(const ::google::protobuf::Message &m)
+  Line& operator<<(const ::google::protobuf::Message& m)
   {
     using namespace ::google::protobuf;
 
     auto descr = m.GetDescriptor();
     auto refl = m.GetReflection();
-    for (int i=0; i<descr->field_count(); ++i)
+    for (int i = 0; i < descr->field_count(); ++i)
     {
       auto field = descr->field(i);
 
       if (field->is_repeated())
       {
         int size = refl->FieldSize(m, field);
-        switch (field->cpp_type()) {
+        switch (field->cpp_type())
+        {
           case FieldDescriptor::CPPTYPE_MESSAGE:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << refl->GetRepeatedMessage(m, field, k);
             }
             break;
           case FieldDescriptor::CPPTYPE_BOOL:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedBool(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_ENUM:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << refl->GetRepeatedEnum(m, field, k)->name();
             }
             break;
           case FieldDescriptor::CPPTYPE_FLOAT:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedFloat(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_DOUBLE:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedDouble(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_UINT32:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedUInt32(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_UINT64:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedUInt64(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_INT32:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedInt32(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_INT64:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << std::to_string(refl->GetRepeatedInt64(m, field, k));
             }
             break;
           case FieldDescriptor::CPPTYPE_STRING:
-            for (int k=0; k<size;++k)
+            for (int k = 0; k < size; ++k)
             {
               *this << refl->GetRepeatedString(m, field, k);
             }
             break;
         }
-
-      } else if (!field->is_optional() || refl->HasField(m, field))
+      }
+      else if (!field->is_optional() || refl->HasField(m, field))
       {
-        switch (field->cpp_type()) {
+        switch (field->cpp_type())
+        {
           case FieldDescriptor::CPPTYPE_MESSAGE:
             *this << refl->GetMessage(m, field);
             break;
@@ -266,12 +260,9 @@ struct Line
     return *this;
   }
 };
-
 }
 
-
-
-std::ostream& operator <<(std::ostream& s, const csv::Header &header)
+std::ostream& operator<<(std::ostream& s, const csv::Header& header)
 {
   bool first = true;
   for (auto&& hf : header._fields)
@@ -285,9 +276,7 @@ std::ostream& operator <<(std::ostream& s, const csv::Header &header)
   return s;
 }
 
-
-
-std::ostream& operator<<(std::ostream& s, const csv::Line &csv)
+std::ostream& operator<<(std::ostream& s, const csv::Line& csv)
 {
   bool first = true;
   for (auto&& e : csv._entries)
@@ -295,7 +284,9 @@ std::ostream& operator<<(std::ostream& s, const csv::Line &csv)
     if (first)
     {
       s << e;
-    } else {
+    }
+    else
+    {
       s << "," << e;
     }
     first = false;
@@ -304,4 +295,4 @@ std::ostream& operator<<(std::ostream& s, const csv::Line &csv)
   return s;
 }
 
-#endif //RC_DYNAMICS_API_CSV_PRINTING_H_H
+#endif  // RC_DYNAMICS_API_CSV_PRINTING_H_H

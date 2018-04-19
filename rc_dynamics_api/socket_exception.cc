@@ -41,14 +41,12 @@ namespace rc
 {
 namespace dynamics
 {
+SocketException::SocketException(const std::string& msg, const int errnum)
+  : std::runtime_error(msg), errnum_(errnum), msg_(msg + " - " + std::to_string(errnum))
+{
+}
 
-SocketException::SocketException(const std::string &msg, const int errnum) :
-        std::runtime_error(msg),
-        errnum_(errnum),
-        msg_(msg + " - " + std::to_string(errnum))
-{}
-
-const char *SocketException::what() const noexcept
+const char* SocketException::what() const noexcept
 {
   return msg_.c_str();
 }
@@ -57,6 +55,5 @@ int SocketException::get_error_code() const noexcept
 {
   return errnum_;
 }
-
 }
 }

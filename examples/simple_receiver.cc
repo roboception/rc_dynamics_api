@@ -52,24 +52,22 @@ namespace rcdyn = rc::dynamics;
 static bool caught_signal = false;
 void signal_callback_handler(int signum)
 {
-  printf("Caught signal %d, stopping program!\n",signum);
+  printf("Caught signal %d, stopping program!\n", signum);
   caught_signal = true;
 }
 
 /**
  * Print usage of example including command line args
  */
-void printUsage(char *arg)
+void printUsage(char* arg)
 {
   cout << "\nRequests a data stream from the specified rc_visard IP "
           "\nand simply prints received data to std out."
        << "\n\nUsage: \n"
-       << arg
-       << " -v <rcVisardIP> -s <stream> [-i <networkInterface>][-n <numMessages>]"
-       << endl;
+       << arg << " -v <rcVisardIP> -s <stream> [-i <networkInterface>][-n <numMessages>]" << endl;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 #ifdef WIN32
   WSADATA wsaData;
@@ -80,7 +78,6 @@ int main(int argc, char *argv[])
   signal(SIGINT, signal_callback_handler);
   signal(SIGTERM, signal_callback_handler);
 
-
   /**
    * Parse program options (e.g. IP, desired interface for receiving data, ...)
    */
@@ -89,10 +86,10 @@ int main(int argc, char *argv[])
   bool userSetIp = false;
   bool userSetStreamType = false;
 
-  int i=1;
+  int i = 1;
   while (i < argc)
   {
-    std::string p=argv[i++];
+    std::string p = argv[i++];
 
     if (p == "-s" && i < argc)
     {
@@ -110,7 +107,7 @@ int main(int argc, char *argv[])
     }
     else if (p == "-n" && i < argc)
     {
-      maxNumMsgs = (unsigned int) std::max(0, atoi(argv[i++]));
+      maxNumMsgs = (unsigned int)std::max(0, atoi(argv[i++]));
     }
     else if (p == "-h")
     {
@@ -148,37 +145,33 @@ int main(int argc, char *argv[])
     cout << "starting rc_dynamics module on rc_visard..." << endl;
     rcvisardDynamics->start();
   }
-  catch (exception &e)
+  catch (exception& e)
   {
-    cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-         << e.what() << endl;
+    cout << "ERROR! Could not start rc_dynamics module on rc_visard: " << e.what() << endl;
     return EXIT_FAILURE;
   }
 
   try
   {
     // easy-to-use creation of a data receiver, parameterized via stream type
-    cout << "creating receiver and waiting for first messages to arrive..."
-         << endl;
+    cout << "creating receiver and waiting for first messages to arrive..." << endl;
     auto receiver = rcvisardDynamics->createReceiverForStream(streamName, networkIface);
     receiver->setTimeout(250);
 
     // receive rc_dynamics protobuf msgs and print them
     for (; cntMsgs < maxNumMsgs && !caught_signal; ++cntMsgs)
     {
-      auto msg = receiver->receive(
-              rcvisardDynamics->getPbMsgTypeOfStream(streamName));
+      auto msg = receiver->receive(rcvisardDynamics->getPbMsgTypeOfStream(streamName));
       if (msg)
       {
         cout << "received msg " << endl << msg->DebugString() << endl;
       }
     }
   }
-  catch (exception &e)
+  catch (exception& e)
   {
     cout << "ERROR during streaming: " << e.what() << endl;
   }
-
 
   /**
    * Stopping streaming and clean-up
@@ -188,10 +181,9 @@ int main(int argc, char *argv[])
     cout << "stopping rc_dynamics module on rc_visard..." << endl;
     rcvisardDynamics->stop();
   }
-  catch (exception &e)
+  catch (exception& e)
   {
-    cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-         << e.what() << endl;
+    cout << "ERROR! Could not start rc_dynamics module on rc_visard: " << e.what() << endl;
   }
 
   cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;

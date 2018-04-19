@@ -41,14 +41,13 @@
 
 namespace rc
 {
-
 /**
  * Converts a string-represented ip into uint (e.g. for subnet masking)
  *  taken from: https://www.stev.org/post/ccheckanipaddressisinaipmask
  * @param ip
  * @return
  */
-uint32_t IPToUInt(const std::string &ip);
+uint32_t IPToUInt(const std::string& ip);
 
 /**
  * Checks if a given ip is in range of a network defined by ip/subnet
@@ -58,7 +57,7 @@ uint32_t IPToUInt(const std::string &ip);
  * @param mask
  * @return
  */
-bool isIPInRange(const std::string &ip, const std::string &network, const std::string &mask);
+bool isIPInRange(const std::string& ip, const std::string& network, const std::string& mask);
 
 /**
  * Convenience function to scan this host's (multiple) network interface(s) for
@@ -72,17 +71,15 @@ bool isIPInRange(const std::string &ip, const std::string &network, const std::s
  * @param networkInterface name, e.g. eth0, wlan0, ...
  * @return true if valid IP address was found among network interfaces
  */
-bool getThisHostsIP(std::string &thisHostsIP,
-                    const std::string &otherHostsIP,
-                    const std::string &networkInterface = "");
+bool getThisHostsIP(std::string& thisHostsIP, const std::string& otherHostsIP,
+                    const std::string& networkInterface = "");
 
 /**
  * Checks if given string is a valid IP address
  * @param ip IP address to be checked
  * @return true if valid
  */
-bool isValidIPAddress(const std::string &ip);
-
+bool isValidIPAddress(const std::string& ip);
 }
 
-#endif //RC_DEVICE_NET_UTILS_H
+#endif  // RC_DEVICE_NET_UTILS_H

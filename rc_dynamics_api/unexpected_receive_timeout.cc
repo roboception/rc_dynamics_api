@@ -33,7 +33,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include "unexpected_receive_timeout.h"
 
 #include <string>
@@ -44,17 +43,15 @@ namespace rc
 {
 namespace dynamics
 {
-
 UnexpectedReceiveTimeout::UnexpectedReceiveTimeout(unsigned int timeoutMillis)
-        : runtime_error(string("Ran into unexpected receive timeout (") +
-                        to_string(timeoutMillis) + "ms)! " +
-                        "Possible reasons: \n" +
-                        "1) rc_visard's dynamics module is not running, i.e. turned off.\n" +
-                        "2) rc_visard cannot estimate its dynamic state, e.g. cameras are occluded, camera images are too dark, or cameras are de-calibrated.\n" +
-                        "3) Network issues, i.e. messages are sent by rc_visard but not received by this host!\n" +
-                        "4) Firewall on the host may be active."),
-          _timeout(timeoutMillis)
-{}
-
+  : runtime_error(string("Ran into unexpected receive timeout (") + to_string(timeoutMillis) + "ms)! " +
+                  "Possible reasons: \n" + "1) rc_visard's dynamics module is not running, i.e. turned off.\n" +
+                  "2) rc_visard cannot estimate its dynamic state, e.g. cameras are occluded, camera images are too "
+                  "dark, or cameras are de-calibrated.\n" +
+                  "3) Network issues, i.e. messages are sent by rc_visard but not received by this host!\n" +
+                  "4) Firewall on the host may be active.")
+  , _timeout(timeoutMillis)
+{
+}
 }
 }

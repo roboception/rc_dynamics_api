@@ -33,7 +33,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef RC_DYNAMICS_API_MSG_UTILS_H
 #define RC_DYNAMICS_API_MSG_UTILS_H
 
@@ -41,23 +40,19 @@ namespace rc
 {
 namespace msgs
 {
-
 using namespace ::roboception::msgs;
 
-bool isPbMessageOfType(const std::string &pbMsgType,
-                       const ::google::protobuf::Message &msg)
+bool isPbMessageOfType(const std::string& pbMsgType, const ::google::protobuf::Message& msg)
 {
   return msg.GetDescriptor()->full_name() == pbMsgType;
 }
 
-template<class PbMsgType>
-bool isPbMessageOfType(const ::google::protobuf::Message &msg)
+template <class PbMsgType>
+bool isPbMessageOfType(const ::google::protobuf::Message& msg)
 {
-  return msg.GetDescriptor()->full_name() ==
-         PbMsgType::descriptor()->full_name();
+  return msg.GetDescriptor()->full_name() == PbMsgType::descriptor()->full_name();
+}
+}
 }
 
-}
-}
-
-#endif //RC_DYNAMICS_API_MSG_UTILS_H
+#endif  // RC_DYNAMICS_API_MSG_UTILS_H

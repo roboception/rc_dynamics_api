@@ -49,11 +49,11 @@
 #include <unistd.h>
 #endif
 
-namespace rc {
-
+namespace rc
+{
 using namespace std;
 
-uint32_t IPToUInt(const std::string &ip)
+uint32_t IPToUInt(const std::string& ip)
 {
   int a, b, c, d;
   uint32_t addr = 0;
@@ -70,7 +70,7 @@ uint32_t IPToUInt(const std::string &ip)
   return addr;
 }
 
-bool isIPInRange(const std::string &ip, const std::string &network, const std::string &mask)
+bool isIPInRange(const std::string& ip, const std::string& network, const std::string& mask)
 {
   uint32_t ip_addr = IPToUInt(ip);
   uint32_t network_addr = IPToUInt(network);
@@ -89,42 +89,40 @@ bool isIPInRange(const std::string &ip, const std::string &network, const std::s
 
 #ifdef WIN32
 
-bool getThisHostsIP(string &thisHostsIP,
-                    const string &otherHostsIP,
-                    const string &networkInterface)
+bool getThisHostsIP(string& thisHostsIP, const string& otherHostsIP, const string& networkInterface)
 {
-  thisHostsIP="";
-  
+  thisHostsIP = "";
+
   // convert string IP to integer representation
-  
-  DWORD dwOtherHostsIP=0;
+
+  DWORD dwOtherHostsIP = 0;
   if (otherHostsIP.size() > 0)
   {
-	dwOtherHostsIP=htonl(IPToUInt(otherHostsIP));
+    dwOtherHostsIP = htonl(IPToUInt(otherHostsIP));
   }
-  
+
   // get index of network interface with given interface name
-  
-  DWORD ifindex=0xffff;
-  
+
+  DWORD ifindex = 0xffff;
+
   if (networkInterface.size() > 0)
   {
-    PIP_ADAPTER_ADDRESSES addr=0;
-    ULONG addr_size=0;
+    PIP_ADAPTER_ADDRESSES addr = 0;
+    ULONG addr_size = 0;
 
-    for (int i=0; i<3; i++)
+    for (int i = 0; i < 3; i++)
     {
       if (addr_size > 0)
       {
-        addr=reinterpret_cast<PIP_ADAPTER_ADDRESSES>(malloc(addr_size));
-      }
-	
-      if (addr == 0)
-      {
-        addr_size=0;
+        addr = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(malloc(addr_size));
       }
 
-      ULONG ret=GetAdaptersAddresses(AF_INET, 0, 0, addr, &addr_size);
+      if (addr == 0)
+      {
+        addr_size = 0;
+      }
+
+      ULONG ret = GetAdaptersAddresses(AF_INET, 0, 0, addr, &addr_size);
 
       if (ret == ERROR_SUCCESS)
       {
@@ -132,41 +130,40 @@ bool getThisHostsIP(string &thisHostsIP,
       }
 
       free(addr);
-      addr=0;
+      addr = 0;
     }
 
-    PIP_ADAPTER_ADDRESSES p=addr;
+    PIP_ADAPTER_ADDRESSES p = addr;
 
     std::wstring wNetworkInterface(networkInterface.begin(), networkInterface.end());
 
     while (p != 0)
     {
-      if (networkInterface.compare(p->AdapterName) == 0 ||
-          wNetworkInterface.compare(p->FriendlyName) == 0)
-	  {
-		ifindex=p->IfIndex;
-		break;
-	  }
+      if (networkInterface.compare(p->AdapterName) == 0 || wNetworkInterface.compare(p->FriendlyName) == 0)
+      {
+        ifindex = p->IfIndex;
+        break;
+      }
 
-	  p=p->Next;
-	}
-	
-	free(addr);
-	
-	if (ifindex == 0xffff)
-	{
-	  return false;	
-	}
+      p = p->Next;
+    }
+
+    free(addr);
+
+    if (ifindex == 0xffff)
+    {
+      return false;
+    }
   }
-  
+
   // get table with IPv4 to network interface mappings
-  
-  PMIB_IPADDRTABLE table=0;
-  ULONG table_size=0;
-  
-  for (int i=0; i<5; i++)
+
+  PMIB_IPADDRTABLE table = 0;
+  ULONG table_size = 0;
+
+  for (int i = 0; i < 5; i++)
   {
-    int result=GetIpAddrTable(table, &table_size, false);
+    int result = GetIpAddrTable(table, &table_size, false);
 
     if (result == NO_ERROR)
     {
@@ -175,95 +172,93 @@ bool getThisHostsIP(string &thisHostsIP,
     else if (result == ERROR_INSUFFICIENT_BUFFER)
     {
       free(table);
-      table=static_cast<PMIB_IPADDRTABLE>(malloc(table_size));
+      table = static_cast<PMIB_IPADDRTABLE>(malloc(table_size));
     }
   }
-  
+
   if (table == 0)
   {
     return false;
   }
 
   // got through table of mappings
-  
-  bool foundValid=false;
-  for (unsigned int i=0; i<table->dwNumEntries; i++)
+
+  bool foundValid = false;
+  for (unsigned int i = 0; i < table->dwNumEntries; i++)
   {
-    PMIB_IPADDRROW row=&table->table[i];
-    
+    PMIB_IPADDRROW row = &table->table[i];
+
     // filter out loopback device
-	
+
     if (row->dwAddr == htonl(INADDR_LOOPBACK))
     {
       continue;
     }
-    
+
     // if network interface name is given, then filter by this interface
-	
+
     if (ifindex == 0xffff || ifindex == row->dwIndex)
     {
-	  // find network interface that can reach the specified other hosts IP
-	  
-      if ((row->dwAddr&row->dwMask) == (dwOtherHostsIP&row->dwMask))
-	  {
+      // find network interface that can reach the specified other hosts IP
+
+      if ((row->dwAddr & row->dwMask) == (dwOtherHostsIP & row->dwMask))
+      {
         IN_ADDR addr;
-		char tmp[80];
-        addr.S_un.S_addr=row->dwAddr;
-		RtlIpv4AddressToStringA(&addr, tmp);
-        thisHostsIP=string(tmp);
-		
-        foundValid=true;
-		
+        char tmp[80];
+        addr.S_un.S_addr = row->dwAddr;
+        RtlIpv4AddressToStringA(&addr, tmp);
+        thisHostsIP = string(tmp);
+
+        foundValid = true;
+
         break;
       }
     }
   }
-  
+
   // free resources
-  
+
   free(table);
-  
+
   return foundValid;
 }
 
-bool isValidIPAddress(const std::string &ip)
+bool isValidIPAddress(const std::string& ip)
 {
-  LPCTSTR tp=0;
+  LPCTSTR tp = 0;
   IN_ADDR addr;
-  
+
   return RtlIpv4StringToAddressA(ip.c_str(), TRUE, &tp, &addr) == 0;
 }
 
 #else
 
-bool getThisHostsIP(string &thisHostsIP,
-                    const string &otherHostsIP,
-                    const string &networkInterface)
+bool getThisHostsIP(string& thisHostsIP, const string& otherHostsIP, const string& networkInterface)
 {
   // scan all network interfaces (for the desired one)
-  struct ifaddrs *ifAddrStruct = NULL;
-  struct ifaddrs *ifa = NULL;
-  void *tmpAddrPtr = NULL;
+  struct ifaddrs* ifAddrStruct = NULL;
+  struct ifaddrs* ifa = NULL;
+  void* tmpAddrPtr = NULL;
   getifaddrs(&ifAddrStruct);
   bool foundValid = false;
   char addressBuffer[INET_ADDRSTRLEN], netmaskBuffer[INET_ADDRSTRLEN];
   for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next)
   {
     // check if any valid IP4 address
-	
+
     if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET)
       continue;
 
-    tmpAddrPtr = &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
+    tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
     inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
 
     // if network interface name is given, then filter by this interface
-	
+
     if (networkInterface.size() == 0 || strcmp(networkInterface.c_str(), ifa->ifa_name) == 0)
     {
-	  // find network interface that can reach the specified other hosts IP
-	  
-      tmpAddrPtr = &((struct sockaddr_in *) ifa->ifa_netmask)->sin_addr;
+      // find network interface that can reach the specified other hosts IP
+
+      tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr;
       inet_ntop(AF_INET, tmpAddrPtr, netmaskBuffer, INET_ADDRSTRLEN);
       if (isIPInRange(addressBuffer, otherHostsIP, netmaskBuffer))
       {
@@ -277,11 +272,11 @@ bool getThisHostsIP(string &thisHostsIP,
   {
     thisHostsIP = string(addressBuffer);
   }
-  
+
   return foundValid;
 }
 
-bool isValidIPAddress(const std::string &ip)
+bool isValidIPAddress(const std::string& ip)
 {
   // use inet_pton to check if given string is a valid IP address
   static struct sockaddr_in sa;
@@ -289,5 +284,4 @@ bool isValidIPAddress(const std::string &ip)
 }
 
 #endif
-
 }

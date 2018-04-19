@@ -52,24 +52,22 @@ namespace rcdyn = rc::dynamics;
 static bool caught_signal = false;
 void signal_callback_handler(int signum)
 {
-  printf("Caught signal %d, stopping program!\n",signum);
+  printf("Caught signal %d, stopping program!\n", signum);
   caught_signal = true;
 }
 
 /**
  * Print usage of example including command line args
  */
-void printUsage(char *arg)
+void printUsage(char* arg)
 {
   cout << "\nStarts rc_visard's dynamics and slam modules for a certain time "
           "\nperiod, retrieves the Slam trajectory and simply prints it to std out."
        << "\n\nUsage: \n"
-       << arg
-       << " -v <rcVisardIP> [-t <timePeriodSecs>]"
-       << endl;
+       << arg << " -v <rcVisardIP> [-t <timePeriodSecs>]" << endl;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 #ifdef WIN32
   WSADATA wsaData;
@@ -80,7 +78,6 @@ int main(int argc, char *argv[])
   signal(SIGINT, signal_callback_handler);
   signal(SIGTERM, signal_callback_handler);
 
-
   /**
    * Parse program options
    */
@@ -88,10 +85,10 @@ int main(int argc, char *argv[])
   bool userSetIp = false;
   unsigned int maxTimeSecs = 5;
 
-  int i=1;
+  int i = 1;
   while (i < argc)
   {
-    std::string p=argv[i++];
+    std::string p = argv[i++];
 
     if (p == "-v" && i < argc)
     {
@@ -100,7 +97,7 @@ int main(int argc, char *argv[])
     }
     else if (p == "-t" && i < argc)
     {
-      maxTimeSecs = (unsigned int) std::max(0, atoi(argv[i++]));
+      maxTimeSecs = (unsigned int)std::max(0, atoi(argv[i++]));
     }
     else if (p == "-h")
     {
@@ -132,13 +129,11 @@ int main(int argc, char *argv[])
     cout << "starting rc_dynamics module with slam on rc_visard..." << endl;
     rcvisardDynamics->startSlam();
   }
-  catch (exception &e)
+  catch (exception& e)
   {
-    cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-         << e.what() << endl;
+    cout << "ERROR! Could not start rc_dynamics module on rc_visard: " << e.what() << endl;
     return EXIT_FAILURE;
   }
-
 
   /**
    * simply wait for defined number of secons
@@ -146,9 +141,9 @@ int main(int argc, char *argv[])
   cout << "running..." << endl;
 
 #ifdef WIN32
-  Sleep(1000*maxTimeSecs);
+  Sleep(1000 * maxTimeSecs);
 #else
-  usleep(1000*1000*maxTimeSecs);
+  usleep(1000 * 1000 * maxTimeSecs);
 #endif
 
   /**
@@ -165,13 +160,12 @@ int main(int argc, char *argv[])
 
     // print the last second of the trajectory to cout
     traj = rcvisardDynamics->getSlamTrajectory(rc::TrajectoryTime::RelativeToEnd(1));
-    cout << "The last second of the trajectory contains " << traj.poses().size()
-         << " waypoints and looks like:" << endl << traj.DebugString() << endl;
+    cout << "The last second of the trajectory contains " << traj.poses().size() << " waypoints and looks like:" << endl
+         << traj.DebugString() << endl;
   }
-  catch (exception &e)
+  catch (exception& e)
   {
-    cout << "ERROR! Could not start rc_dynamics module on rc_visard: "
-         << e.what() << endl;
+    cout << "ERROR! Could not start rc_dynamics module on rc_visard: " << e.what() << endl;
   }
 
 #ifdef WIN32
