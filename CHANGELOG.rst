@@ -1,3 +1,9 @@
+0.6.0 (2018-04-19)
+------------------
+
+* add methods to access slam "reset" service
+* use single json.hpp include instead of submodule
+
 0.5.0 (2018-02-26)
 ------------------
 
