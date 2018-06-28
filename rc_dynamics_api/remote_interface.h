@@ -95,6 +95,12 @@ public:
     static const std::string RUNNING_WITH_SLAM;  ///< Stereo INS and SLAM are running.
   };
 
+  struct ReturnCode
+  {
+    int value; ///< suceess >= 0, failure < 0
+    std::string message;
+  };
+
   /// Thrown if the current_state response of the dynamics service does not correspond to those
   /// in the State struct
   class invalid_state : public std::runtime_error
@@ -178,6 +184,24 @@ public:
    * @throw invalid_state if the entered state does not match the known states in State
    */
   std::string resetSlam();
+
+  /**
+   * Saves the SLAM map on the sensor.
+   * @return return code indicating success and string message
+   */
+  ReturnCode saveSlamMap();
+
+  /**
+   * Loads the SLAM map on the sensor.
+   * @return return code indicating success and string message
+   */
+  ReturnCode loadSlamMap();
+
+  /**
+   * Removes the SLAM map on the sensor.
+   * @return return code indicating success and string message
+   */
+  ReturnCode removeSlamMap();
 
   /**
    * Returns a list all available streams on rc_visard
@@ -278,7 +302,7 @@ protected:
   void checkStreamTypeAvailable(const std::string& stream);
   /// Common functionality for start(), startSlam(), stop(), ...
   std::string callDynamicsService(std::string serviceName);
-  std::string callSlamService(std::string serviceName);
+  ReturnCode callSlamService(std::string serviceName); ///< call slam services which have a return code with value and message
 
   std::string _visardAddrs;
   std::map<std::string, std::list<std::string>> _reqStreams;

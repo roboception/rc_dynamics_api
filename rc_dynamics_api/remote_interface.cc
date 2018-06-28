@@ -194,56 +194,6 @@ RemoteInterface::~RemoteInterface()
   }
 }
 
-std::string RemoteInterface::callSlamService(std::string serviceName)
-{
-  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr::Put(url, cpr::Timeout{ _timeoutCurl });
-  handleCPRResponse(response);
-  auto j = json::parse(response.text);
-  std::string entered_state;
-  bool accepted = true;
-
-  try
-  {
-    entered_state = j["response"]["current_state"].get<std::string>();
-    std::vector<std::string> valid_states = { "IDLE",       "RUNNING",   "FATAL", "WAITING_FOR_DATA",
-                                              "RESTARTING", "RESETTING", "HALTED" };
-    if (std::count(valid_states.begin(), valid_states.end(), entered_state) == 0)
-    {
-      // mismatch between rc_slam states and states used in this class?
-      throw invalid_state(entered_state);
-    }
-
-    accepted = j["response"]["accepted"].get<bool>();
-  }
-  catch (std::logic_error& json_exception)
-  {
-    // Maybe old interface version? If so just return the numeric code
-    // as string - it isn't used by the tools using the old interface
-    try
-    {
-      entered_state = std::to_string(j["response"]["enteredState"].get<int>());
-    }
-    catch (std::logic_error& json_exception)
-    {
-      // Real problem (may even be unrelated to parsing json. Let the user see what the response is.
-      cerr << "Logic error when parsing the response of a service call to rc_dynamics!\n";
-      cerr << "Service called: " << url << "\n";
-      cerr << "Response:"
-           << "\n";
-      cerr << response.text << "\n";
-      throw;
-    }
-  }
-
-  if (!accepted)
-  {
-    throw not_accepted(serviceName);
-  }
-
-  return entered_state;
-}
-
 std::string RemoteInterface::callDynamicsService(std::string serviceName)
 {
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/services/" + serviceName };
@@ -318,9 +268,97 @@ std::string RemoteInterface::stopSlam()
 {
   return callDynamicsService("stop_slam");
 }
+
 std::string RemoteInterface::resetSlam()
 {
-  return callSlamService("reset");
+  std::string serviceName = "reset";
+  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
+  auto response = cpr::Put(url, cpr::Timeout{ _timeoutCurl });
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+  std::string entered_state;
+  bool accepted = true;
+
+  try
+  {
+    entered_state = j["response"]["current_state"].get<std::string>();
+    std::vector<std::string> valid_states = { "IDLE",       "RUNNING",   "FATAL", "WAITING_FOR_DATA",
+                                              "RESTARTING", "RESETTING", "HALTED" };
+    if (std::count(valid_states.begin(), valid_states.end(), entered_state) == 0)
+    {
+      // mismatch between rc_slam states and states used in this class?
+      throw invalid_state(entered_state);
+    }
+
+    accepted = j["response"]["accepted"].get<bool>();
+  }
+  catch (std::logic_error& json_exception)
+  {
+    // Maybe old interface version? If so just return the numeric code
+    // as string - it isn't used by the tools using the old interface
+    try
+    {
+      entered_state = std::to_string(j["response"]["enteredState"].get<int>());
+    }
+    catch (std::logic_error& json_exception)
+    {
+      // Real problem (may even be unrelated to parsing json. Let the user see what the response is.
+      cerr << "Logic error when parsing the response of a service call to rc_dynamics!\n";
+      cerr << "Service called: " << url << "\n";
+      cerr << "Response:"
+           << "\n";
+      cerr << response.text << "\n";
+      throw;
+    }
+  }
+
+  if (!accepted)
+  {
+    throw not_accepted(serviceName);
+  }
+
+  return entered_state;
+}
+
+RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string serviceName)
+{
+  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
+  auto response = cpr::Put(url, cpr::Timeout{ _timeoutCurl });
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+
+  ReturnCode return_code;
+
+  try
+  {
+    return_code.value = j["response"]["return_code"]["value"].get<int>();
+    return_code.message = j["response"]["return_code"]["message"];
+  }
+  catch (std::logic_error& json_exception)
+  {
+    // Real problem (may even be unrelated to parsing json. Let the user see what the response is.
+    cerr << "Logic error when parsing the response of a service call to rc_dynamics!\n";
+    cerr << "Service called: " << url << "\n";
+    cerr << "Response:"
+        << "\n";
+    cerr << response.text << "\n";
+    throw;
+  }
+
+  return return_code;
+}
+
+RemoteInterface::ReturnCode RemoteInterface::saveSlamMap()
+{
+  return callSlamService("save_map");
+}
+RemoteInterface::ReturnCode RemoteInterface::loadSlamMap()
+{
+  return callSlamService("load_map");
+}
+RemoteInterface::ReturnCode RemoteInterface::removeSlamMap()
+{
+  return callSlamService("remove_map");
 }
 
 list<string> RemoteInterface::getAvailableStreams()
