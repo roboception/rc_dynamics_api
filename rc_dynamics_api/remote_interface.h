@@ -302,7 +302,7 @@ protected:
   void checkStreamTypeAvailable(const std::string& stream);
   /// Common functionality for start(), startSlam(), stop(), ...
   std::string callDynamicsService(std::string serviceName);
-  ReturnCode callSlamService(std::string serviceName); ///< call slam services which have a return code with value and message
+  ReturnCode callSlamService(std::string serviceName, unsigned int timeout_ms = 0); ///< call slam services which have a return code with value and message
 
   std::string _visardAddrs;
   std::map<std::string, std::list<std::string>> _reqStreams;

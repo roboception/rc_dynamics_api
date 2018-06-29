@@ -320,10 +320,10 @@ std::string RemoteInterface::resetSlam()
   return entered_state;
 }
 
-RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string serviceName)
+RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string serviceName, unsigned int timeout_ms)
 {
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr::Put(url, cpr::Timeout{ _timeoutCurl });
+  auto response = cpr::Put(url, cpr::Timeout{ timeout_ms });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
 
