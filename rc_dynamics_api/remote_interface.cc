@@ -323,7 +323,7 @@ std::string RemoteInterface::resetSlam()
 RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string serviceName, unsigned int timeout_ms)
 {
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr::Put(url, cpr::Timeout{ timeout_ms });
+  auto response = cpr::Put(url, cpr::Timeout{ (int32_t)timeout_ms });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
 
@@ -348,17 +348,17 @@ RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string service
   return return_code;
 }
 
-RemoteInterface::ReturnCode RemoteInterface::saveSlamMap()
+RemoteInterface::ReturnCode RemoteInterface::saveSlamMap(unsigned int timeout_ms)
 {
-  return callSlamService("save_map");
+  return callSlamService("save_map", timeout_ms);
 }
-RemoteInterface::ReturnCode RemoteInterface::loadSlamMap()
+RemoteInterface::ReturnCode RemoteInterface::loadSlamMap(unsigned int timeout_ms)
 {
-  return callSlamService("load_map");
+  return callSlamService("load_map", timeout_ms);
 }
-RemoteInterface::ReturnCode RemoteInterface::removeSlamMap()
+RemoteInterface::ReturnCode RemoteInterface::removeSlamMap(unsigned int timeout_ms)
 {
-  return callSlamService("remove_map");
+  return callSlamService("remove_map", timeout_ms);
 }
 
 list<string> RemoteInterface::getAvailableStreams()
@@ -468,7 +468,7 @@ roboception::msgs::Trajectory toProtobufTrajectory(const json js)
 }
 }
 
-roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const TrajectoryTime& start, const TrajectoryTime& end)
+roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const TrajectoryTime& start, const TrajectoryTime& end, unsigned int timeout_ms)
 {
   // convert time specification to json obj
   json js_args, js_time, js_start_time, js_end_time;
@@ -485,7 +485,7 @@ roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const Trajector
 
   // get request on slam module
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/get_trajectory" };
-  auto get = cpr::Put(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() },
+  auto get = cpr::Put(url, cpr::Timeout{ (int32_t)timeout_ms }, cpr::Body{ js_args.dump() },
                       cpr::Header{ { "Content-Type", "application/json" } });
   handleCPRResponse(get);
 

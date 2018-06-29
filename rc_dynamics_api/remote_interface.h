@@ -187,21 +187,24 @@ public:
 
   /**
    * Saves the SLAM map on the sensor.
+   * @param timeout_ms timeout in ms for the call (default 0: no timeout)
    * @return return code indicating success and string message
    */
-  ReturnCode saveSlamMap();
+  ReturnCode saveSlamMap(unsigned int timeout_ms = 0);
 
   /**
    * Loads the SLAM map on the sensor.
+   * @param timeout_ms timeout in ms for the call (default 0: no timeout)
    * @return return code indicating success and string message
    */
-  ReturnCode loadSlamMap();
+  ReturnCode loadSlamMap(unsigned int timeout_ms = 0);
 
   /**
    * Removes the SLAM map on the sensor.
+   * @param timeout_ms timeout in ms for the call (default 0: no timeout)
    * @return return code indicating success and string message
    */
-  ReturnCode removeSlamMap();
+  ReturnCode removeSlamMap(unsigned int timeout_ms = 0);
 
   /**
    * Returns a list all available streams on rc_visard
@@ -267,7 +270,8 @@ public:
    * very end)
    */
   roboception::msgs::Trajectory getSlamTrajectory(const TrajectoryTime& start = TrajectoryTime::RelativeToStart(),
-                                                  const TrajectoryTime& end = TrajectoryTime::RelativeToEnd());
+                                                  const TrajectoryTime& end = TrajectoryTime::RelativeToEnd(),
+                                                  unsigned int timeout_ms = 0);
 
   /**
    * Convenience method that automatically
