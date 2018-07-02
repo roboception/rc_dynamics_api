@@ -1,3 +1,9 @@
+0.7.0 (2018-04-02)
+------------------
+
+* add saveSlamMap, loadSlamMap and removeSlamMap methods
+* getSlamTrajectory doesn't time out by default anymore
+
 0.6.0 (2018-04-19)
 ------------------
 

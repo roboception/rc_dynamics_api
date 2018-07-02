@@ -125,7 +125,7 @@ public:
    * Creates a local instance of rc_visard's remote pose interface
    *
    * @param rcVisardIP rc_visard's inet address as string, e.g "192.168.0.12"
-   * @param requestsTimeout timeout in [ms] for doing REST-API calls
+   * @param requestsTimeout timeout in [ms] for doing REST-API calls, which don't have an explicit timeout parameter
    */
   static Ptr create(const std::string& rcVisardIP, unsigned int requestsTimeout = 5000);
 
