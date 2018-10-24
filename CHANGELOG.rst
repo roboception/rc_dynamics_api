@@ -1,4 +1,4 @@
-0.7.0 (2018-04-02)
+0.7.0 (2018-07-02)
 ------------------
 
 * add saveSlamMap, loadSlamMap and removeSlamMap methods
