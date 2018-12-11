@@ -2,8 +2,7 @@ Roboception Dynamics API
 ========================
 
 The rc_dynamics_api provides an API for easy handling of the dynamic-state data
-streams provided by Roboception's [rc_visard]
-(http://rc-visard.com) stereo camera with self-localization.
+streams provided by Roboception's [rc_visard](http://rc-visard.com) stereo camera with self-localization.
 
 Dynamic-state estimates of the rc_visard relate to its self-localization and
 ego-motion estimation. These states refer to rc_visard's current pose,
