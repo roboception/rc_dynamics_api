@@ -4,6 +4,7 @@ before_script:
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  GET_SOURCES_ATTEMPTS: 3
 
 #########################
 # Templates using anchors
