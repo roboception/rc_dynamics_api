@@ -132,6 +132,11 @@ public:
   virtual ~RemoteInterface();
 
   /**
+   * Returns the current state of rc_dynamics module
+   */
+  std::string getState();
+
+  /**
    * Sets rc_dynamics module to running state.
    * Only start the Stereo INS. To start SLAM use startSlam().
    * To restart use the restart() method.

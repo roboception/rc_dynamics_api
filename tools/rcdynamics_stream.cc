@@ -204,6 +204,7 @@ int main(int argc, char* argv[])
     cout << left << setw(firstColumnWidth) << firstColumn << "Protobuf message types:" << endl;
     for (auto&& s : streams)
       cout << left << setw(firstColumnWidth) << s << rcvisardDynamics->getPbMsgTypeOfStream(s) << endl;
+    cout << endl << "rc_dynamics is in state: " << rcvisardDynamics->getState();
     cout << endl;
     return EXIT_SUCCESS;
   }

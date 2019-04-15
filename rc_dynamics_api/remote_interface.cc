@@ -186,6 +186,16 @@ RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requests
   }
 }
 
+
+string RemoteInterface::getState()
+{
+  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/status"};
+  auto response = cpr::Get(url, cpr::Timeout{ _timeoutCurl });
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+  return j["values"]["state"];
+}
+
 RemoteInterface::~RemoteInterface()
 {
   try {
