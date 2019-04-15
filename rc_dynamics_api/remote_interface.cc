@@ -431,6 +431,10 @@ void RemoteInterface::addDestinationToStream(const string& stream, const string&
   // do put request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
   auto put = cpr::Put(url, cpr::Timeout{ _timeoutCurl }, cpr::Parameters{ { "destination", destination } });
+  if (put.status_code == 403)
+  {
+    throw too_many_stream_destinations(json::parse(put.text)["message"].get<string>());
+  }
   handleCPRResponse(put);
 
   // keep track of added destinations
@@ -597,14 +601,16 @@ DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream,
   receiver->setTimeout(initialTimeOut);
   if (!receiver->receive(_protobufMap[stream]))
   {
+    // we did not receive any message; check why, e.g. dynamics not in correct state?
+    string current_state = getState();
+    std::vector<std::string> valid_states = { "RUNNING",  "RUNNING_WITH_SLAM" };
+    if (std::count(valid_states.begin(), valid_states.end(), current_state) == 0)
+    {
+      throw dynamics_not_running(current_state);
+    }
+
+    // in other cases we cannot tell, what's the reason
     throw UnexpectedReceiveTimeout(initialTimeOut);
-    //    stringstream msg;
-    //    msg << "Did not receive any data within the last "
-    //        << initialTimeOut << " ms. "
-    //        << "Either rc_visard does not seem to send the data properly "
-    //                "(is rc_dynamics module running?) or you seem to have serious "
-    //                "network/connection problems!";
-    //    throw runtime_error(msg.str());
   }
 
   // stream established, prepare everything for normal pose receiving
