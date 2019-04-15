@@ -252,11 +252,13 @@ public:
   void deleteDestinationFromStream(const std::string& stream, const std::string& destination);
 
   /**
-   * Deletes all destinations from a stream.
+   * Deletes given destinations from a stream, i.e. request rc_visard to stop
+   * streaming data of the specified type to the given destinations.
    *
    * @param stream stream type, e.g. "pose", "pose_rt" or "dynamics"
+   * @param destinations list string-represented destination of the data stream, e.g. "192.168.0.1:30000"
    */
-  void deleteAllDestinationsFromStream(const std::string& stream);
+  void deleteDestinationsFromStream(const std::string& stream, const std::list<std::string>& destinations);
 
   /**
    * Returns the Slam trajectory from the sensor.
@@ -309,6 +311,7 @@ protected:
   ReturnCode callSlamService(std::string serviceName, unsigned int timeout_ms = 0); ///< call slam services which have a return code with value and message
 
   std::string _visardAddrs;
+  float _visardVersion; ///< rc_visard's firmware version as double, i.e. major.minor, e.g. 1.6
   std::map<std::string, std::list<std::string>> _reqStreams;
   std::list<std::string> _availStreams;
   std::map<std::string, std::string> _protobufMap;

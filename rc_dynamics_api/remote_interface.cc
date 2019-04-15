@@ -38,6 +38,7 @@
 
 #include "json.hpp"
 #include <cpr/cpr.h>
+#include <regex>
 
 using namespace std;
 using json = nlohmann::json;
@@ -158,10 +159,22 @@ RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requests
     throw invalid_argument("Given IP address is not a valid address: " + rcVisardIP);
   }
 
-  // initial connection to rc_visard and get streams, i.e. do get request on
+  // initial connection to rc_visard to get version...
+  _visardVersion = 0.0;
+  auto get = cpr::Get(cpr::Url{ _baseUrl + "/system" },
+                      cpr::Timeout{ _timeoutCurl });
+  handleCPRResponse(get);
+  string version = json::parse(get.text)["firmware"]["active_image"]["image_version"];
+  std::smatch match;
+  if (std::regex_search(version, match, std::regex("v(\\d+).(\\d+).(\\d+)")))
+  {
+    _visardVersion = stof(match[0].str().substr(1,3));
+  }
+
+  // ...and get streams, i.e. do get request on
   // respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{ _baseUrl + "/datastreams" };
-  auto get = cpr::Get(url, cpr::Timeout{ _timeoutCurl });
+  get = cpr::Get(cpr::Url{ _baseUrl + "/datastreams" },
+                      cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(get);
 
   // parse text of response into json object
@@ -175,12 +188,17 @@ RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requests
 
 RemoteInterface::~RemoteInterface()
 {
-  cleanUpRequestedStreams();
+  try {
+    cleanUpRequestedStreams();
+  } catch (exception& e) {
+    cerr << "[RemoteInterface::~RemoteInterface] Could not clean up all previously requested streams: "
+         << e.what() << endl;
+  }
   for (const auto& s : _reqStreams)
   {
     if (s.second.size() > 0)
     {
-      cerr << "[RemoteInterface] Could not stop all previously requested"
+      cerr << "[RemoteInterface::~RemoteInterface] Could not stop all previously requested"
               " streams of type "
            << s.first << " on rc_visard. Please check "
                          "device manually"
@@ -421,6 +439,49 @@ void RemoteInterface::deleteDestinationFromStream(const string& stream, const st
     destinations.erase(found);
 }
 
+void RemoteInterface::deleteDestinationsFromStream(const string& stream, const list<string>& destinations)
+{
+  checkStreamTypeAvailable(stream);
+
+  // with newer image versions this is the most efficent way, i.e. only one call
+  if (_visardVersion >= 1.600001) {
+
+    // do delete request on respective url; list of destinationas are given as body
+    json js_destinations = json::array();
+    for (const auto& dest: destinations)
+    {
+      js_destinations.push_back(dest);
+    }
+    json js_args;
+    js_args["destination"] = js_destinations;
+    cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
+    auto del = cpr::Delete(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump()},
+                            cpr::Header{ { "Content-Type", "application/json" } });
+    handleCPRResponse(del);
+
+  // with older image versions we have to work around and do several calls
+  } else {
+    for (const auto& dest : destinations)
+    {
+      // do delete request on respective url; destination is given as query param
+      cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
+      auto del = cpr::Delete(url, cpr::Timeout{ _timeoutCurl }, cpr::Parameters{ { "destination", dest } });
+      handleCPRResponse(del);
+    }
+  }
+
+  // delete destination also from list of requested streams
+  auto& reqDestinations = _reqStreams[stream];
+  for (auto& destination : destinations)
+  {
+    auto found = find(reqDestinations.begin(), reqDestinations.end(), destination);
+    if (found != reqDestinations.end())
+    {
+      reqDestinations.erase(found);
+    }
+  }
+}
+
 namespace
 {
 roboception::msgs::Trajectory toProtobufTrajectory(const json js)
@@ -539,38 +600,12 @@ DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream,
 
 void RemoteInterface::cleanUpRequestedStreams()
 {
-  // for each stream type check currently running streams on rc_visard device
+  // for each stream type stop all previously requested streams
   for (auto const& s : _reqStreams)
   {
-    // get a list of currently active streams of this type on rc_visard device
-    list<string> rcVisardsActiveStreams;
-    try
+    if (!s.second.empty())
     {
-      rcVisardsActiveStreams = getDestinationsOfStream(s.first);
-    }
-    catch (exception& e)
-    {
-      cerr << "[RemoteInterface] Could not get list of active " << s.first
-           << " streams for cleaning up previously requested streams: " << e.what() << endl;
-      continue;
-    }
-
-    // try to stop all previously requested streams of this type
-    for (auto activeStream : rcVisardsActiveStreams)
-    {
-      auto found = find(s.second.begin(), s.second.end(), activeStream);
-      if (found != s.second.end())
-      {
-        try
-        {
-          deleteDestinationFromStream(s.first, activeStream);
-        }
-        catch (exception& e)
-        {
-          cerr << "[RemoteInterface] Could not delete destination " << activeStream << " from " << s.first
-               << " stream: " << e.what() << endl;
-        }
-      }
+      deleteDestinationsFromStream(s.first, s.second);
     }
   }
 }
