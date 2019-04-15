@@ -121,6 +121,15 @@ public:
     }
   };
 
+  /// Thrown if a REST API call is rejected because of too many requests
+  class too_many_requests : public std::runtime_error
+  {
+  public:
+    explicit too_many_requests(std::string msg) : runtime_error("rc_visard returned 429 (too many requests): " + msg)
+    {
+    }
+  };
+
   /**
    * Creates a local instance of rc_visard's remote pose interface
    *

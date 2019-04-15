@@ -84,9 +84,13 @@ string toString(list<string> list)
 
 void handleCPRResponse(cpr::Response r)
 {
-  if (r.status_code != 200)
-  {
-    throw runtime_error(toString(r));
+  switch (r.status_code) {
+    case 200:
+      return;
+    case 429:
+      throw RemoteInterface::too_many_requests(toString(r));
+    default:
+      throw runtime_error(toString(r));
   }
 }
 
