@@ -121,11 +121,29 @@ public:
     }
   };
 
+  /// Thrown if rc_dynamics is requested to receive dynamics data but component is not running
+  class dynamics_not_running : public std::runtime_error
+  {
+  public:
+    explicit dynamics_not_running(std::string state) : runtime_error("No data received: rc_dynamics is not running but in state: " + state)
+    {
+    }
+  };
+
+  /// Thrown if too many streams are running already on rc_visard
+  class too_many_stream_destinations : public std::runtime_error
+  {
+  public:
+    explicit too_many_stream_destinations(std::string msg) : runtime_error(msg)
+    {
+    }
+  };
+
   /// Thrown if a REST API call is rejected because of too many requests
   class too_many_requests : public std::runtime_error
   {
   public:
-    explicit too_many_requests(std::string msg) : runtime_error("rc_visard returned 429 (too many requests): " + msg)
+    explicit too_many_requests(std::string url) : runtime_error("rc_visard returned http error code 429 (too many requests): " + url)
     {
     }
   };

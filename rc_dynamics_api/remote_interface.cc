@@ -88,10 +88,76 @@ void handleCPRResponse(cpr::Response r)
     case 200:
       return;
     case 429:
-      throw RemoteInterface::too_many_requests(toString(r));
+      throw RemoteInterface::too_many_requests(r.url);
     default:
       throw runtime_error(toString(r));
   }
+}
+
+namespace {
+
+  vector<int> wait_before_retry = { 5, 10, 20, 50, 100, 200, 500, 1000};
+
+  cpr::Response cpr_get_with_retry(cpr::Url url, cpr::Timeout timeout) {
+    for (int retry : wait_before_retry) {
+      auto response = cpr::Get(url, timeout, cpr::Header{ { "accept", "application/json" }});
+      if (response.status_code == 429) {
+        cout << "WARNING: Got http code 429 (too many requests) on "
+             << url << ". Retrying in " << retry << "ms..." << endl;
+        usleep(1000 * retry);
+        continue;
+      }
+      return response;
+    }
+    throw RemoteInterface::too_many_requests(url);
+  }
+
+  cpr::Response cpr_put_with_retry(cpr::Url url, cpr::Timeout timeout, cpr::Body body = cpr::Body{}) {
+
+    // we need different headers if body is empty or not
+    cpr::Header header;
+    if (body == cpr::Body{}) {
+      header = cpr::Header{ { "accept", "application/json" }};
+    } else {
+      header = cpr::Header{ { "accept", "application/json" }, { "Content-Type", "application/json" }};
+    }
+
+    for (int retry : wait_before_retry) {
+      auto response = cpr::Put(url, timeout, body, header);
+      if (response.status_code==429) {
+        cout << "WARNING: Got http code 429 (too many requests) on "
+             << url << ". Retrying in " << retry << "ms..." << endl;
+        usleep(1000 * retry);
+        continue;
+      }
+      return response;
+    }
+    throw RemoteInterface::too_many_requests(url);
+  }
+
+  cpr::Response cpr_delete_with_retry(cpr::Url url, cpr::Timeout timeout, cpr::Body body = cpr::Body{}) {
+
+    // we need different headers if body is empty or not
+    cpr::Header header;
+    if (body == cpr::Body{}) {
+      header = cpr::Header{ { "accept", "application/json" }};
+    } else {
+      header = cpr::Header{ { "accept", "application/json" }, { "Content-Type", "application/json" }};
+    }
+
+    for (int retry : wait_before_retry) {
+      auto response = cpr::Delete(url, timeout, body, header);
+      if (response.status_code==429) {
+        cout << "WARNING: Got http code 429 (too many requests) on "
+             << url << ". Retrying in " << retry << "ms..." << endl;
+        usleep(1000 * retry);
+        continue;
+      }
+      return response;
+    }
+    throw RemoteInterface::too_many_requests(url);
+  }
+
 }
 
 /**
@@ -165,7 +231,7 @@ RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requests
 
   // initial connection to rc_visard to get version...
   _visardVersion = 0.0;
-  auto get = cpr::Get(cpr::Url{ _baseUrl + "/system" },
+  auto get = cpr_get_with_retry(cpr::Url{ _baseUrl + "/system" },
                       cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(get);
   string version = json::parse(get.text)["firmware"]["active_image"]["image_version"];
@@ -177,7 +243,7 @@ RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requests
 
   // ...and get streams, i.e. do get request on
   // respective url (no parameters needed for this simple service call)
-  get = cpr::Get(cpr::Url{ _baseUrl + "/datastreams" },
+  get = cpr_get_with_retry(cpr::Url{ _baseUrl + "/datastreams" },
                       cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(get);
 
@@ -194,7 +260,7 @@ RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requests
 string RemoteInterface::getState()
 {
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/status"};
-  auto response = cpr::Get(url, cpr::Timeout{ _timeoutCurl });
+  auto response = cpr_get_with_retry(url, cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   return j["values"]["state"];
@@ -229,7 +295,7 @@ RemoteInterface::~RemoteInterface()
 std::string RemoteInterface::callDynamicsService(std::string serviceName)
 {
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/services/" + serviceName };
-  auto response = cpr::Put(url, cpr::Timeout{ _timeoutCurl });
+  auto response = cpr_put_with_retry(url, cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   std::string entered_state;
@@ -305,7 +371,7 @@ std::string RemoteInterface::resetSlam()
 {
   std::string serviceName = "reset";
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr::Put(url, cpr::Timeout{ _timeoutCurl });
+  auto response = cpr_put_with_retry(url, cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   std::string entered_state;
@@ -355,7 +421,7 @@ std::string RemoteInterface::resetSlam()
 RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string serviceName, unsigned int timeout_ms)
 {
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr::Put(url, cpr::Timeout{ (int32_t)timeout_ms });
+  auto response = cpr_put_with_retry(url, cpr::Timeout{ (int32_t)timeout_ms });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
 
@@ -412,7 +478,7 @@ list<string> RemoteInterface::getDestinationsOfStream(const string& stream)
 
   // do get request on respective url (no parameters needed for this simple service call)
   cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-  auto get = cpr::Get(url, cpr::Timeout{ _timeoutCurl });
+  auto get = cpr_get_with_retry(url, cpr::Timeout{ _timeoutCurl });
   handleCPRResponse(get);
 
   // parse result as json
@@ -428,9 +494,16 @@ void RemoteInterface::addDestinationToStream(const string& stream, const string&
 {
   checkStreamTypeAvailable(stream);
 
-  // do put request on respective url (no parameters needed for this simple service call)
+  // do put request on respective url
+  json js_args;
+  js_args["destination"] = json::array();
+  js_args["destination"].push_back(destination);
   cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-  auto put = cpr::Put(url, cpr::Timeout{ _timeoutCurl }, cpr::Parameters{ { "destination", destination } });
+  auto put = cpr_put_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() });
+  if (put.status_code == 403)
+  {
+    throw too_many_stream_destinations(json::parse(put.text)["message"].get<string>());
+  }
   handleCPRResponse(put);
 
   // keep track of added destinations
@@ -441,9 +514,12 @@ void RemoteInterface::deleteDestinationFromStream(const string& stream, const st
 {
   checkStreamTypeAvailable(stream);
 
-  // do delete request on respective url (no parameters needed for this simple service call)
+  // do delete request on respective url
+  json js_args;
+  js_args["destination"] = json::array();
+  js_args["destination"].push_back(destination);
   cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-  auto del = cpr::Delete(url, cpr::Timeout{ _timeoutCurl }, cpr::Parameters{ { "destination", destination } });
+  auto del = cpr_delete_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() });
   handleCPRResponse(del);
 
   // delete destination also from list of requested streams
@@ -469,17 +545,19 @@ void RemoteInterface::deleteDestinationsFromStream(const string& stream, const l
     json js_args;
     js_args["destination"] = js_destinations;
     cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-    auto del = cpr::Delete(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump()},
-                            cpr::Header{ { "Content-Type", "application/json" } });
+    auto del = cpr_delete_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump()});
     handleCPRResponse(del);
 
   // with older image versions we have to work around and do several calls
   } else {
     for (const auto& dest : destinations)
     {
-      // do delete request on respective url; destination is given as query param
+      // do delete request on respective url
+      json js_args;
+      js_args["destination"] = json::array();
+      js_args["destination"].push_back(dest);
       cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-      auto del = cpr::Delete(url, cpr::Timeout{ _timeoutCurl }, cpr::Parameters{ { "destination", dest } });
+      auto del = cpr_delete_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() });
       handleCPRResponse(del);
     }
   }
@@ -560,8 +638,7 @@ roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const Trajector
 
   // get request on slam module
   cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/get_trajectory" };
-  auto get = cpr::Put(url, cpr::Timeout{ (int32_t)timeout_ms }, cpr::Body{ js_args.dump() },
-                      cpr::Header{ { "Content-Type", "application/json" } });
+  auto get = cpr_put_with_retry(url, cpr::Timeout{ (int32_t)timeout_ms }, cpr::Body{ js_args.dump() });
   handleCPRResponse(get);
 
   auto js = json::parse(get.text)["response"]["trajectory"];
@@ -597,14 +674,16 @@ DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream,
   receiver->setTimeout(initialTimeOut);
   if (!receiver->receive(_protobufMap[stream]))
   {
+    // we did not receive any message; check why, e.g. dynamics not in correct state?
+    string current_state = getState();
+    std::vector<std::string> valid_states = { "RUNNING",  "RUNNING_WITH_SLAM" };
+    if (std::count(valid_states.begin(), valid_states.end(), current_state) == 0)
+    {
+      throw dynamics_not_running(current_state);
+    }
+
+    // in other cases we cannot tell, what's the reason
     throw UnexpectedReceiveTimeout(initialTimeOut);
-    //    stringstream msg;
-    //    msg << "Did not receive any data within the last "
-    //        << initialTimeOut << " ms. "
-    //        << "Either rc_visard does not seem to send the data properly "
-    //                "(is rc_dynamics module running?) or you seem to have serious "
-    //                "network/connection problems!";
-    //    throw runtime_error(msg.str());
   }
 
   // stream established, prepare everything for normal pose receiving
