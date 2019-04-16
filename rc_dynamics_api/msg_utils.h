@@ -42,9 +42,9 @@ namespace msgs
 {
 using namespace ::roboception::msgs;
 
-bool isPbMessageOfType(const std::string& pbMsgType, const ::google::protobuf::Message& msg)
+bool isPbMessageOfType(const std::string& pb_msg_type, const ::google::protobuf::Message& msg)
 {
-  return msg.GetDescriptor()->full_name() == pbMsgType;
+  return msg.GetDescriptor()->full_name() == pb_msg_type;
 }
 
 template <class PbMsgType>

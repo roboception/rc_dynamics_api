@@ -61,26 +61,26 @@ namespace csv
  */
 struct Header
 {
-  std::vector<std::string> _fields;
-  std::string _prefix;
+  std::vector<std::string> fields_;
+  std::string prefix_;
 
   static Header prefixed(const std::string& p, const ::google::protobuf::Message& m)
   {
     Header header;
-    header._prefix = p;
+    header.prefix_ = p;
     return header << m;
   }
 
   Header& operator<<(const std::string& field)
   {
-    _fields.insert(std::end(_fields), _prefix + field);
+    fields_.insert(std::end(fields_), prefix_ + field);
     return *this;
   }
 
   Header& operator<<(const Header& other)
   {
-    for (auto&& f : other._fields)
-      _fields.insert(std::end(_fields), _prefix + f);
+    for (auto&& f : other.fields_)
+      fields_.insert(std::end(fields_), prefix_ + f);
     return *this;
   }
 
@@ -134,11 +134,11 @@ struct Header
  */
 struct Line
 {
-  std::vector<std::string> _entries;
+  std::vector<std::string> entries_;
 
   Line& operator<<(const std::string& t)
   {
-    this->_entries.insert(std::end(this->_entries), t);
+    this->entries_.insert(std::end(this->entries_), t);
     return *this;
   }
 
@@ -265,7 +265,7 @@ struct Line
 std::ostream& operator<<(std::ostream& s, const csv::Header& header)
 {
   bool first = true;
-  for (auto&& hf : header._fields)
+  for (auto&& hf : header.fields_)
   {
     if (first)
       s << hf;
@@ -279,7 +279,7 @@ std::ostream& operator<<(std::ostream& s, const csv::Header& header)
 std::ostream& operator<<(std::ostream& s, const csv::Line& csv)
 {
   bool first = true;
-  for (auto&& e : csv._entries)
+  for (auto&& e : csv.entries_)
   {
     if (first)
     {

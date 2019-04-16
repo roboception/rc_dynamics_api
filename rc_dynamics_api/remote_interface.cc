@@ -88,7 +88,7 @@ void handleCPRResponse(cpr::Response r)
     case 200:
       return;
     case 429:
-      throw RemoteInterface::too_many_requests(r.url);
+      throw RemoteInterface::TooManyRequests(r.url);
     default:
       throw runtime_error(toString(r));
   }
@@ -98,7 +98,8 @@ namespace {
 
   vector<int> wait_before_retry = { 5, 10, 20, 50, 100, 200, 500, 1000};
 
-  cpr::Response cpr_get_with_retry(cpr::Url url, cpr::Timeout timeout) {
+  // Wrapper around cpr::Get requests which does retries in case of 429 response
+  cpr::Response cprGetWithRetry(cpr::Url url, cpr::Timeout timeout) {
     for (int retry : wait_before_retry) {
       auto response = cpr::Get(url, timeout, cpr::Header{ { "accept", "application/json" }});
       if (response.status_code == 429) {
@@ -109,10 +110,11 @@ namespace {
       }
       return response;
     }
-    throw RemoteInterface::too_many_requests(url);
+    throw RemoteInterface::TooManyRequests(url);
   }
 
-  cpr::Response cpr_put_with_retry(cpr::Url url, cpr::Timeout timeout, cpr::Body body = cpr::Body{}) {
+  // Wrapper around cpr::Put requests which does retries in case of 429 response
+  cpr::Response cprPutWithRetry(cpr::Url url, cpr::Timeout timeout, cpr::Body body = cpr::Body{}) {
 
     // we need different headers if body is empty or not
     cpr::Header header;
@@ -132,10 +134,11 @@ namespace {
       }
       return response;
     }
-    throw RemoteInterface::too_many_requests(url);
+    throw RemoteInterface::TooManyRequests(url);
   }
 
-  cpr::Response cpr_delete_with_retry(cpr::Url url, cpr::Timeout timeout, cpr::Body body = cpr::Body{}) {
+  // Wrapper around cpr::Deletee requests which does retries in case of 429 response
+  cpr::Response cprDeleteWithRetry(cpr::Url url, cpr::Timeout timeout, cpr::Body body = cpr::Body{}) {
 
     // we need different headers if body is empty or not
     cpr::Header header;
@@ -155,7 +158,7 @@ namespace {
       }
       return response;
     }
-    throw RemoteInterface::too_many_requests(url);
+    throw RemoteInterface::TooManyRequests(url);
   }
 
 }
@@ -178,11 +181,11 @@ public:
   {
     try
     {
-      _creator->deleteDestinationFromStream(_stream, _dest);
+      creator_->deleteDestinationFromStream(stream_, dest_);
     }
     catch (exception& e)
     {
-      cerr << "[TrackedDataReceiver] Could not remove my destination " << _dest << " for stream type " << _stream
+      cerr << "[TrackedDataReceiver] Could not remove my destination " << dest_ << " for stream type " << stream_
            << " from rc_visard: " << e.what() << endl;
     }
   }
@@ -190,77 +193,77 @@ public:
 protected:
   TrackedDataReceiver(const string& ip_address, unsigned int& port, const string& stream,
                       shared_ptr<RemoteInterface> creator)
-    : DataReceiver(ip_address, port), _dest(ip_address + ":" + to_string(port)), _stream(stream), _creator(creator)
+    : DataReceiver(ip_address, port), dest_(ip_address + ":" + to_string(port)), stream_(stream), creator_(creator)
   {
   }
 
-  string _dest, _stream;
-  shared_ptr<RemoteInterface> _creator;
+  string dest_, stream_;
+  shared_ptr<RemoteInterface> creator_;
 };
 
 // map to store already created RemoteInterface objects
-map<string, RemoteInterface::Ptr> RemoteInterface::_remoteInterfaces = map<string, RemoteInterface::Ptr>();
+map<string, RemoteInterface::Ptr> RemoteInterface::remote_interfaces_ = map<string, RemoteInterface::Ptr>();
 
-RemoteInterface::Ptr RemoteInterface::create(const string& rcVisardInetAddrs, unsigned int requestsTimeout)
+RemoteInterface::Ptr RemoteInterface::create(const string& rc_visard_inet_addrs, unsigned int requests_timeout)
 {
   // check if interface is already opened
-  auto found = RemoteInterface::_remoteInterfaces.find(rcVisardInetAddrs);
-  if (found != RemoteInterface::_remoteInterfaces.end())
+  auto found = RemoteInterface::remote_interfaces_.find(rc_visard_inet_addrs);
+  if (found != RemoteInterface::remote_interfaces_.end())
   {
     return found->second;
   }
 
   // if not, create it
-  auto newRemoteInterface = Ptr(new RemoteInterface(rcVisardInetAddrs, requestsTimeout));
-  RemoteInterface::_remoteInterfaces[rcVisardInetAddrs] = newRemoteInterface;
+  auto new_remote_interface = Ptr(new RemoteInterface(rc_visard_inet_addrs, requests_timeout));
+  RemoteInterface::remote_interfaces_[rc_visard_inet_addrs] = new_remote_interface;
 
-  return newRemoteInterface;
+  return new_remote_interface;
 }
 
-RemoteInterface::RemoteInterface(const string& rcVisardIP, unsigned int requestsTimeout)
-  : _visardAddrs(rcVisardIP), _baseUrl("http://" + _visardAddrs + "/api/v1"), _timeoutCurl(requestsTimeout)
+RemoteInterface::RemoteInterface(const string& rc_visard_ip, unsigned int requests_timeout)
+  : visard_addrs_(rc_visard_ip), base_url_("http://" + visard_addrs_ + "/api/v1"), timeout_curl_(requests_timeout)
 {
-  _reqStreams.clear();
-  _protobufMap.clear();
+  req_streams_.clear();
+  protobuf_map_.clear();
 
   // check if given string is a valid IP address
-  if (!isValidIPAddress(rcVisardIP))
+  if (!isValidIPAddress(rc_visard_ip))
   {
-    throw invalid_argument("Given IP address is not a valid address: " + rcVisardIP);
+    throw invalid_argument("Given IP address is not a valid address: " + rc_visard_ip);
   }
 
   // initial connection to rc_visard to get version...
-  _visardVersion = 0.0;
-  auto get = cpr_get_with_retry(cpr::Url{ _baseUrl + "/system" },
-                      cpr::Timeout{ _timeoutCurl });
+  visard_version_ = 0.0;
+  auto get = cprGetWithRetry(cpr::Url{ base_url_ + "/system" },
+                             cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(get);
   string version = json::parse(get.text)["firmware"]["active_image"]["image_version"];
   std::smatch match;
   if (std::regex_search(version, match, std::regex("v(\\d+).(\\d+).(\\d+)")))
   {
-    _visardVersion = stof(match[0].str().substr(1,3));
+    visard_version_ = stof(match[0].str().substr(1,3));
   }
 
   // ...and get streams, i.e. do get request on
   // respective url (no parameters needed for this simple service call)
-  get = cpr_get_with_retry(cpr::Url{ _baseUrl + "/datastreams" },
-                      cpr::Timeout{ _timeoutCurl });
+  get = cprGetWithRetry(cpr::Url{ base_url_ + "/datastreams" },
+                        cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(get);
 
   // parse text of response into json object
   auto j = json::parse(get.text);
   for (const auto& stream : j)
   {
-    _availStreams.push_back(stream["name"]);
-    _protobufMap[stream["name"]] = stream["protobuf"];
+    avail_streams_.push_back(stream["name"]);
+    protobuf_map_[stream["name"]] = stream["protobuf"];
   }
 }
 
 
-string RemoteInterface::getState()
+string RemoteInterface::getDynamicsState()
 {
-  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/status"};
-  auto response = cpr_get_with_retry(url, cpr::Timeout{ _timeoutCurl });
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_dynamics/status"};
+  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   return j["values"]["state"];
@@ -274,7 +277,7 @@ RemoteInterface::~RemoteInterface()
     cerr << "[RemoteInterface::~RemoteInterface] Could not clean up all previously requested streams: "
          << e.what() << endl;
   }
-  for (const auto& s : _reqStreams)
+  for (const auto& s : req_streams_)
   {
     if (s.second.size() > 0)
     {
@@ -283,19 +286,19 @@ RemoteInterface::~RemoteInterface()
            << s.first << " on rc_visard. Please check "
                          "device manually"
                          " ("
-           << _baseUrl << "/datastreams/" << s.first << ")"
+           << base_url_ << "/datastreams/" << s.first << ")"
                                                         " for not containing any of the following legacy streams and"
                                                         " delete them otherwise, e.g. using the swagger UI ("
-           << "http://" + _visardAddrs + "/api/swagger/)"
+           << "http://" + visard_addrs_ + "/api/swagger/)"
            << ": " << toString(s.second) << endl;
     }
   }
 }
 
-std::string RemoteInterface::callDynamicsService(std::string serviceName)
+std::string RemoteInterface::callDynamicsService(std::string service_name)
 {
-  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_dynamics/services/" + serviceName };
-  auto response = cpr_put_with_retry(url, cpr::Timeout{ _timeoutCurl });
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_dynamics/services/" + service_name };
+  auto response = cprPutWithRetry(url, cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   std::string entered_state;
@@ -309,7 +312,7 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
         entered_state != State::WAITING_FOR_SLAM and entered_state != State::RUNNING_WITH_SLAM)
     {
       // mismatch between rc_dynamics states and states used in this class?
-      throw invalid_state(entered_state);
+      throw InvalidState(entered_state);
     }
 
     accepted = j["response"]["accepted"].get<bool>();
@@ -336,7 +339,7 @@ std::string RemoteInterface::callDynamicsService(std::string serviceName)
 
   if (!accepted)
   {
-    throw not_accepted(serviceName);
+    throw NotAccepted(service_name);
   }
 
   return entered_state;
@@ -369,9 +372,9 @@ std::string RemoteInterface::stopSlam()
 
 std::string RemoteInterface::resetSlam()
 {
-  std::string serviceName = "reset";
-  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr_put_with_retry(url, cpr::Timeout{ _timeoutCurl });
+  std::string service_name = "reset";
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_slam/services/" + service_name };
+  auto response = cprPutWithRetry(url, cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
   std::string entered_state;
@@ -385,7 +388,7 @@ std::string RemoteInterface::resetSlam()
     if (std::count(valid_states.begin(), valid_states.end(), entered_state) == 0)
     {
       // mismatch between rc_slam states and states used in this class?
-      throw invalid_state(entered_state);
+      throw InvalidState(entered_state);
     }
 
     accepted = j["response"]["accepted"].get<bool>();
@@ -412,16 +415,16 @@ std::string RemoteInterface::resetSlam()
 
   if (!accepted)
   {
-    throw not_accepted(serviceName);
+    throw NotAccepted(service_name);
   }
 
   return entered_state;
 }
 
-RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string serviceName, unsigned int timeout_ms)
+RemoteInterface::ReturnCode RemoteInterface::callSlamService(std::string service_name, unsigned int timeout_ms)
 {
-  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/" + serviceName };
-  auto response = cpr_put_with_retry(url, cpr::Timeout{ (int32_t)timeout_ms });
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_slam/services/" + service_name };
+  auto response = cprPutWithRetry(url, cpr::Timeout{ (int32_t)timeout_ms });
   handleCPRResponse(response);
   auto j = json::parse(response.text);
 
@@ -461,13 +464,13 @@ RemoteInterface::ReturnCode RemoteInterface::removeSlamMap(unsigned int timeout_
 
 list<string> RemoteInterface::getAvailableStreams()
 {
-  return _availStreams;
+  return avail_streams_;
 }
 
 string RemoteInterface::getPbMsgTypeOfStream(const string& stream)
 {
   checkStreamTypeAvailable(stream);
-  return _protobufMap[stream];
+  return protobuf_map_[stream];
 }
 
 list<string> RemoteInterface::getDestinationsOfStream(const string& stream)
@@ -477,8 +480,8 @@ list<string> RemoteInterface::getDestinationsOfStream(const string& stream)
   list<string> destinations;
 
   // do get request on respective url (no parameters needed for this simple service call)
-  cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-  auto get = cpr_get_with_retry(url, cpr::Timeout{ _timeoutCurl });
+  cpr::Url url = cpr::Url{ base_url_ + "/datastreams/" + stream };
+  auto get = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(get);
 
   // parse result as json
@@ -498,16 +501,16 @@ void RemoteInterface::addDestinationToStream(const string& stream, const string&
   json js_args;
   js_args["destination"] = json::array();
   js_args["destination"].push_back(destination);
-  cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-  auto put = cpr_put_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() });
+  cpr::Url url = cpr::Url{ base_url_ + "/datastreams/" + stream };
+  auto put = cprPutWithRetry(url, cpr::Timeout{ timeout_curl_ }, cpr::Body{ js_args.dump() });
   if (put.status_code == 403)
   {
-    throw too_many_stream_destinations(json::parse(put.text)["message"].get<string>());
+    throw TooManyStreamDestinations(json::parse(put.text)["message"].get<string>());
   }
   handleCPRResponse(put);
 
   // keep track of added destinations
-  _reqStreams[stream].push_back(destination);
+  req_streams_[stream].push_back(destination);
 }
 
 void RemoteInterface::deleteDestinationFromStream(const string& stream, const string& destination)
@@ -518,12 +521,12 @@ void RemoteInterface::deleteDestinationFromStream(const string& stream, const st
   json js_args;
   js_args["destination"] = json::array();
   js_args["destination"].push_back(destination);
-  cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-  auto del = cpr_delete_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() });
+  cpr::Url url = cpr::Url{ base_url_ + "/datastreams/" + stream };
+  auto del = cprDeleteWithRetry(url, cpr::Timeout{ timeout_curl_ }, cpr::Body{ js_args.dump() });
   handleCPRResponse(del);
 
   // delete destination also from list of requested streams
-  auto& destinations = _reqStreams[stream];
+  auto& destinations = req_streams_[stream];
   auto found = find(destinations.begin(), destinations.end(), destination);
   if (found != destinations.end())
     destinations.erase(found);
@@ -534,7 +537,7 @@ void RemoteInterface::deleteDestinationsFromStream(const string& stream, const l
   checkStreamTypeAvailable(stream);
 
   // with newer image versions this is the most efficent way, i.e. only one call
-  if (_visardVersion >= 1.600001) {
+  if (visard_version_ >= 1.600001) {
 
     // do delete request on respective url; list of destinationas are given as body
     json js_destinations = json::array();
@@ -544,8 +547,8 @@ void RemoteInterface::deleteDestinationsFromStream(const string& stream, const l
     }
     json js_args;
     js_args["destination"] = js_destinations;
-    cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-    auto del = cpr_delete_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump()});
+    cpr::Url url = cpr::Url{ base_url_ + "/datastreams/" + stream };
+    auto del = cprDeleteWithRetry(url, cpr::Timeout{ timeout_curl_ }, cpr::Body{ js_args.dump()});
     handleCPRResponse(del);
 
   // with older image versions we have to work around and do several calls
@@ -556,14 +559,14 @@ void RemoteInterface::deleteDestinationsFromStream(const string& stream, const l
       json js_args;
       js_args["destination"] = json::array();
       js_args["destination"].push_back(dest);
-      cpr::Url url = cpr::Url{ _baseUrl + "/datastreams/" + stream };
-      auto del = cpr_delete_with_retry(url, cpr::Timeout{ _timeoutCurl }, cpr::Body{ js_args.dump() });
+      cpr::Url url = cpr::Url{ base_url_ + "/datastreams/" + stream };
+      auto del = cprDeleteWithRetry(url, cpr::Timeout{ timeout_curl_ }, cpr::Body{ js_args.dump() });
       handleCPRResponse(del);
     }
   }
 
   // delete destination also from list of requested streams
-  auto& reqDestinations = _reqStreams[stream];
+  auto& reqDestinations = req_streams_[stream];
   for (auto& destination : destinations)
   {
     auto found = find(reqDestinations.begin(), reqDestinations.end(), destination);
@@ -581,43 +584,43 @@ roboception::msgs::Trajectory toProtobufTrajectory(const json js)
   // TODO: find an automatic way to parse Messages from Json
   // * is possible with protobuf >= 3.0.x
   // * https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.json_util
-  roboception::msgs::Trajectory pbTraj;
+  roboception::msgs::Trajectory pb_traj;
 
   json::const_iterator js_it;
   if ((js_it = js.find("parent")) != js.end())
   {
-    pbTraj.set_parent(js_it.value());
+    pb_traj.set_parent(js_it.value());
   }
   if ((js_it = js.find("name")) != js.end())
   {
-    pbTraj.set_name(js_it.value());
+    pb_traj.set_name(js_it.value());
   }
   if ((js_it = js.find("producer")) != js.end())
   {
-    pbTraj.set_producer(js_it.value());
+    pb_traj.set_producer(js_it.value());
   }
   if ((js_it = js.find("timestamp")) != js.end())
   {
-    pbTraj.mutable_timestamp()->set_sec(js_it.value()["sec"]);    // TODO: sec
-    pbTraj.mutable_timestamp()->set_nsec(js_it.value()["nsec"]);  // TODO: nsec
+    pb_traj.mutable_timestamp()->set_sec(js_it.value()["sec"]);    // TODO: sec
+    pb_traj.mutable_timestamp()->set_nsec(js_it.value()["nsec"]);  // TODO: nsec
   }
   for (const auto& js_pose : js["poses"])
   {
-    auto pbPose = pbTraj.add_poses();
-    auto pbTime = pbPose->mutable_timestamp();
-    pbTime->set_sec(js_pose["timestamp"]["sec"]);    // TODO: sec
-    pbTime->set_nsec(js_pose["timestamp"]["nsec"]);  // TODO: nsec
-    auto pbPosition = pbPose->mutable_pose()->mutable_position();
-    pbPosition->set_x(js_pose["pose"]["position"]["x"]);
-    pbPosition->set_y(js_pose["pose"]["position"]["y"]);
-    pbPosition->set_z(js_pose["pose"]["position"]["z"]);
-    auto pbOrientation = pbPose->mutable_pose()->mutable_orientation();
-    pbOrientation->set_x(js_pose["pose"]["orientation"]["x"]);
-    pbOrientation->set_y(js_pose["pose"]["orientation"]["y"]);
-    pbOrientation->set_z(js_pose["pose"]["orientation"]["z"]);
-    pbOrientation->set_w(js_pose["pose"]["orientation"]["w"]);
+    auto pb_pose = pb_traj.add_poses();
+    auto pb_time = pb_pose->mutable_timestamp();
+    pb_time->set_sec(js_pose["timestamp"]["sec"]);    // TODO: sec
+    pb_time->set_nsec(js_pose["timestamp"]["nsec"]);  // TODO: nsec
+    auto pb_position = pb_pose->mutable_pose()->mutable_position();
+    pb_position->set_x(js_pose["pose"]["position"]["x"]);
+    pb_position->set_y(js_pose["pose"]["position"]["y"]);
+    pb_position->set_z(js_pose["pose"]["position"]["z"]);
+    auto pb_orientation = pb_pose->mutable_pose()->mutable_orientation();
+    pb_orientation->set_x(js_pose["pose"]["orientation"]["x"]);
+    pb_orientation->set_y(js_pose["pose"]["orientation"]["y"]);
+    pb_orientation->set_z(js_pose["pose"]["orientation"]["z"]);
+    pb_orientation->set_w(js_pose["pose"]["orientation"]["w"]);
   }
-  return pbTraj;
+  return pb_traj;
 }
 }
 
@@ -637,53 +640,53 @@ roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const Trajector
     js_args["args"]["end_time_relative"] = true;
 
   // get request on slam module
-  cpr::Url url = cpr::Url{ _baseUrl + "/nodes/rc_slam/services/get_trajectory" };
-  auto get = cpr_put_with_retry(url, cpr::Timeout{ (int32_t)timeout_ms }, cpr::Body{ js_args.dump() });
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_slam/services/get_trajectory" };
+  auto get = cprPutWithRetry(url, cpr::Timeout{ (int32_t)timeout_ms }, cpr::Body{ js_args.dump() });
   handleCPRResponse(get);
 
   auto js = json::parse(get.text)["response"]["trajectory"];
   return toProtobufTrajectory(js);
 }
 
-DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream, const string& destInterface,
-                                                           unsigned int destPort)
+DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream, const string& dest_interface,
+                                                           unsigned int dest_port)
 {
   checkStreamTypeAvailable(stream);
 
   // figure out local inet address for streaming
-  string destAddress;
-  if (!getThisHostsIP(destAddress, _visardAddrs, destInterface))
+  string dest_address;
+  if (!getThisHostsIP(dest_address, visard_addrs_, dest_interface))
   {
     stringstream msg;
     msg << "Could not infer a valid IP address "
            "for this host as the destination of the stream! "
            "Given network interface specification was '"
-        << destInterface << "'.";
+        << dest_interface << "'.";
     throw invalid_argument(msg.str());
   }
 
   // create data receiver with port as specified
-  DataReceiver::Ptr receiver = TrackedDataReceiver::create(destAddress, destPort, stream, shared_from_this());
+  DataReceiver::Ptr receiver = TrackedDataReceiver::create(dest_address, dest_port, stream, shared_from_this());
 
   // do REST-API call requesting a UDP stream from rc_visard device
-  string destination = destAddress + ":" + to_string(destPort);
+  string destination = dest_address + ":" + to_string(dest_port);
   addDestinationToStream(stream, destination);
 
   // waiting for first message; we set a long timeout for receiving data
-  unsigned int initialTimeOut = 5000;
-  receiver->setTimeout(initialTimeOut);
-  if (!receiver->receive(_protobufMap[stream]))
+  unsigned int initial_timeOut = 5000;
+  receiver->setTimeout(initial_timeOut);
+  if (!receiver->receive(protobuf_map_[stream]))
   {
     // we did not receive any message; check why, e.g. dynamics not in correct state?
-    string current_state = getState();
+    string current_state = getDynamicsState();
     std::vector<std::string> valid_states = { "RUNNING",  "RUNNING_WITH_SLAM" };
     if (std::count(valid_states.begin(), valid_states.end(), current_state) == 0)
     {
-      throw dynamics_not_running(current_state);
+      throw DynamicsNotRunning(current_state);
     }
 
     // in other cases we cannot tell, what's the reason
-    throw UnexpectedReceiveTimeout(initialTimeOut);
+    throw UnexpectedReceiveTimeout(initial_timeOut);
   }
 
   // stream established, prepare everything for normal pose receiving
@@ -694,7 +697,7 @@ DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream,
 void RemoteInterface::cleanUpRequestedStreams()
 {
   // for each stream type stop all previously requested streams
-  for (auto const& s : _reqStreams)
+  for (auto const& s : req_streams_)
   {
     if (!s.second.empty())
     {
@@ -705,11 +708,11 @@ void RemoteInterface::cleanUpRequestedStreams()
 
 void RemoteInterface::checkStreamTypeAvailable(const string& stream)
 {
-  auto found = find(_availStreams.begin(), _availStreams.end(), stream);
-  if (found == _availStreams.end())
+  auto found = find(avail_streams_.begin(), avail_streams_.end(), stream);
+  if (found == avail_streams_.end())
   {
     stringstream msg;
-    msg << "Stream of type '" << stream << "' is not available on rc_visard " << _visardAddrs;
+    msg << "Stream of type '" << stream << "' is not available on rc_visard " << visard_addrs_;
     throw invalid_argument(msg.str());
   }
 }

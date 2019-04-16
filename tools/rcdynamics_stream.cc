@@ -70,7 +70,7 @@ void printUsage(char* arg)
           "\nthem as csv-file, see -o option."
        << "\n\nUsage: \n"
        << arg << " -v <rcVisardIP> -l | -s <stream> [-a] [-i <networkInterface>]"
-                 " [-n <maxNumData>][-t <maxRecTimeSecs>][-o <outputFile>]"
+                 " [-n <maxNumData>][-t <maxRecTimeSecs>][-o <output_file>]"
        << endl;
 }
 
@@ -88,15 +88,15 @@ int main(int argc, char* argv[])
   /**
    * Parse program options (e.g. IP )
    */
-  string outputFileName, visardIP, networkIface = "", streamName;
-  unsigned int maxNumRecordingMsgs = 50, maxRecordingTimeSecs = 5;
-  bool userAutostart = false;
-  bool userSetOutputFile = false;
-  bool userSetMaxNumMsgs = false;
-  bool userSetRecordingTime = false;
-  bool userSetIp = false;
-  bool userSetStreamType = false;
-  bool onlyListStreams = false;
+  string out_file_name, visard_ip, network_iface = "", stream_name;
+  unsigned int max_num_recording = 50, max_secs_recording = 5;
+  bool user_autostart = false;
+  bool user_set_out_file = false;
+  bool user_set_max_num_msgs = false;
+  bool user_set_max_recording_time = false;
+  bool user_set_ip = false;
+  bool user_set_stream_type = false;
+  bool only_list_streams = false;
 
   int i = 1;
   while (i < argc)
@@ -105,40 +105,40 @@ int main(int argc, char* argv[])
 
     if (p == "-l")
     {
-      onlyListStreams = true;
+      only_list_streams = true;
     }
     else if (p == "-s" && i < argc)
     {
-      streamName = string(argv[i++]);
-      userSetStreamType = true;
+      stream_name = string(argv[i++]);
+      user_set_stream_type = true;
     }
     else if (p == "-a")
     {
-      userAutostart = true;
+      user_autostart = true;
     }
     else if (p == "-i" && i < argc)
     {
-      networkIface = string(argv[i++]);
+      network_iface = string(argv[i++]);
     }
     else if (p == "-v" && i < argc)
     {
-      visardIP = string(argv[i++]);
-      userSetIp = true;
+      visard_ip = string(argv[i++]);
+      user_set_ip = true;
     }
     else if (p == "-n" && i < argc)
     {
-      maxNumRecordingMsgs = (unsigned int)std::max(0, atoi(argv[i++]));
-      userSetMaxNumMsgs = true;
+      max_num_recording = (unsigned int)std::max(0, atoi(argv[i++]));
+      user_set_max_num_msgs = true;
     }
     else if (p == "-t" && i < argc)
     {
-      maxRecordingTimeSecs = (unsigned int)std::max(0, atoi(argv[i++]));
-      userSetRecordingTime = true;
+      max_secs_recording = (unsigned int)std::max(0, atoi(argv[i++]));
+      user_set_max_recording_time = true;
     }
     else if (p == "-o" && i < argc)
     {
-      outputFileName = string(argv[i++]);
-      userSetOutputFile = true;
+      out_file_name = string(argv[i++]);
+      user_set_out_file = true;
     }
     else if (p == "-h")
     {
@@ -152,35 +152,35 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (!userSetIp)
+  if (!user_set_ip)
   {
     cerr << "Please specify rc_visard IP." << endl;
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
 
-  if (!userSetStreamType && !onlyListStreams)
+  if (!user_set_stream_type && !only_list_streams)
   {
     cerr << "Please specify stream type." << endl;
     printUsage(argv[0]);
     return EXIT_FAILURE;
   }
 
-  if (!userSetMaxNumMsgs && !userSetRecordingTime)
+  if (!user_set_max_num_msgs && !user_set_max_recording_time)
   {
-    userSetMaxNumMsgs = true;
+    user_set_max_num_msgs = true;
   }
 
   /**
    * open file for recording if required
    */
-  ofstream outputFile;
-  if (userSetOutputFile)
+  ofstream output_file;
+  if (user_set_out_file)
   {
-    outputFile.open(outputFileName);
-    if (!outputFile.is_open())
+    output_file.open(out_file_name);
+    if (!output_file.is_open())
     {
-      cerr << "Could not open file '" << outputFileName << "' for writing!" << endl;
+      cerr << "Could not open file '" << out_file_name << "' for writing!" << endl;
       return EXIT_FAILURE;
     }
   }
@@ -188,34 +188,34 @@ int main(int argc, char* argv[])
   /**
    * Instantiate RemoteInterface
    */
-  cout << "connecting to rc_visard " << visardIP << "..." << endl;
-  auto rcvisardDynamics = RemoteInterface::create(visardIP);
+  cout << "connecting to rc_visard " << visard_ip << "..." << endl;
+  auto rc_dynamics = RemoteInterface::create(visard_ip);
 
   /* Only list available streams of device and exit */
-  if (onlyListStreams)
+  if (only_list_streams)
   {
-    auto streams = rcvisardDynamics->getAvailableStreams();
-    string firstColumn = "Available streams:";
-    size_t firstColumnWidth = firstColumn.length();
+    auto streams = rc_dynamics->getAvailableStreams();
+    string first_column = "Available streams:";
+    size_t first_column_width = first_column.length();
     for (auto&& s : streams)
-      if (s.length() > firstColumnWidth)
-        firstColumnWidth = s.length();
-    firstColumnWidth += 5;
-    cout << left << setw(firstColumnWidth) << firstColumn << "Protobuf message types:" << endl;
+      if (s.length() > first_column_width)
+        first_column_width = s.length();
+    first_column_width += 5;
+    cout << left << setw(first_column_width) << first_column << "Protobuf message types:" << endl;
     for (auto&& s : streams)
-      cout << left << setw(firstColumnWidth) << s << rcvisardDynamics->getPbMsgTypeOfStream(s) << endl;
-    cout << endl << "rc_dynamics is in state: " << rcvisardDynamics->getState();
+      cout << left << setw(first_column_width) << s << rc_dynamics->getPbMsgTypeOfStream(s) << endl;
+    cout << endl << "rc_dynamics is in state: " << rc_dynamics->getDynamicsState();
     cout << endl;
     return EXIT_SUCCESS;
   }
 
   /* For all streams except 'imu' the rc_dynamcis node has to be started */
-  if (userAutostart && streamName != "imu")
+  if (user_autostart && stream_name != "imu")
   {
     try
     {
       cout << "starting SLAM on rc_visard..." << endl;
-      rcvisardDynamics->startSlam();
+      rc_dynamics->startSlam();
     }
     catch (exception&)
     {
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
         // start the rc::dynamics module on the rc_visard
         cout << "SLAM not available!" << endl;
         cout << "starting stereo INS on rc_visard..." << endl;
-        rcvisardDynamics->start();
+        rc_dynamics->start();
       }
       catch (exception& e)
       {
@@ -237,45 +237,45 @@ int main(int argc, char* argv[])
   /**
    * Request a data stream and start receiving as well as processing the data
    */
-  unsigned int cntMsgs = 0;
+  unsigned int cnt_msgs = 0;
   try
   {
-    cout << "Initializing " << streamName << " data stream..." << endl;
-    auto receiver = rcvisardDynamics->createReceiverForStream(streamName, networkIface);
+    cout << "Initializing " << stream_name << " data stream..." << endl;
+    auto receiver = rc_dynamics->createReceiverForStream(stream_name, network_iface);
 
-    unsigned int timeoutMillis = 100;
-    receiver->setTimeout(timeoutMillis);
-    cout << "Listening for " << streamName << " messages..." << endl;
+    unsigned int timeout_millis = 100;
+    receiver->setTimeout(timeout_millis);
+    cout << "Listening for " << stream_name << " messages..." << endl;
 
     chrono::time_point<chrono::system_clock> start = chrono::system_clock::now();
-    chrono::duration<double> elapsedSecs(0);
-    while (!caught_signal && (!userSetMaxNumMsgs || cntMsgs < maxNumRecordingMsgs) &&
-           (!userSetRecordingTime || elapsedSecs.count() < maxRecordingTimeSecs))
+    chrono::duration<double> elapsed_secs(0);
+    while (!caught_signal && (!user_set_max_num_msgs || cnt_msgs < max_num_recording) &&
+           (!user_set_max_recording_time || elapsed_secs.count() < max_secs_recording))
     {
-      auto msg = receiver->receive(rcvisardDynamics->getPbMsgTypeOfStream(streamName));
+      auto msg = receiver->receive(rc_dynamics->getPbMsgTypeOfStream(stream_name));
       if (msg)
       {
-        if (outputFile.is_open())
+        if (output_file.is_open())
         {
-          if (cntMsgs == 0)
+          if (cnt_msgs == 0)
           {
             csv::Header h;
-            outputFile << (h << *msg) << endl;
+            output_file << (h << *msg) << endl;
           }
           csv::Line l;
-          outputFile << (l << *msg) << endl;
+          output_file << (l << *msg) << endl;
         }
         else
         {
-          cout << "received " << streamName << " msg:" << endl << msg->DebugString() << endl;
+          cout << "received " << stream_name << " msg:" << endl << msg->DebugString() << endl;
         }
-        ++cntMsgs;
+        ++cnt_msgs;
       }
       else
       {
-        cerr << "did not receive any data during last " << timeoutMillis << " ms." << endl;
+        cerr << "did not receive any data during last " << timeout_millis << " ms." << endl;
       }
-      elapsedSecs = chrono::system_clock::now() - start;
+      elapsed_secs = chrono::system_clock::now() - start;
     }
   }
   catch (exception& e)
@@ -287,12 +287,12 @@ int main(int argc, char* argv[])
    * Stopping streaming and clean-up
    * 'imu' stream works regardless if the rc_dynamics module is running, so no need to stop it
    */
-  if (userAutostart && streamName != "imu")
+  if (user_autostart && stream_name != "imu")
   {
     try
     {
       cout << "stopping rc_dynamics module on rc_visard..." << endl;
-      rcvisardDynamics->stop();
+      rc_dynamics->stop();
     }
     catch (exception& e)
     {
@@ -300,14 +300,14 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (outputFile.is_open())
+  if (output_file.is_open())
   {
-    outputFile.close();
-    cout << "Recorded " << cntMsgs << " " << streamName << " messages to '" << outputFileName << "'." << endl;
+    output_file.close();
+    cout << "Recorded " << cnt_msgs << " " << stream_name << " messages to '" << out_file_name << "'." << endl;
   }
   else
   {
-    cout << "Received  " << cntMsgs << " " << streamName << " messages." << endl;
+    cout << "Received  " << cnt_msgs << " " << stream_name << " messages." << endl;
   }
 
 #ifdef WIN32

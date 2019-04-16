@@ -53,9 +53,9 @@ class UnexpectedReceiveTimeout : public std::runtime_error
 public:
   /**
    * @brief Constructor.
-   * @param timeoutMillis time out in milli seconds
+   * @param timeout_millis time out in milli seconds
    */
-  UnexpectedReceiveTimeout(unsigned int timeoutMillis);
+  UnexpectedReceiveTimeout(unsigned int timeout_millis);
 
   /**
    * @brief Returns the corresponding timeout in milli seconds
@@ -63,11 +63,11 @@ public:
    */
   inline unsigned int getTimeout() const noexcept
   {
-    return _timeout;
+    return timeout_;
   }
 
 protected:
-  unsigned int _timeout;
+  unsigned int timeout_;
 };
 }
 }

@@ -43,11 +43,11 @@ namespace rc
 {
 namespace dynamics
 {
-UnexpectedReceiveTimeout::UnexpectedReceiveTimeout(unsigned int timeoutMillis)
-  : runtime_error(string("Ran into unexpected receive timeout (") + to_string(timeoutMillis) + "ms)! " +
+UnexpectedReceiveTimeout::UnexpectedReceiveTimeout(unsigned int timeout_millis)
+  : runtime_error(string("Ran into unexpected receive timeout (") + to_string(timeout_millis) + "ms)! " +
                   "Possible reasons might be network issues, i.e. messages are sent by rc_visard but not received by this host, " +
                   "or a firewall on the host may be active.")
-  , _timeout(timeoutMillis)
+  , timeout_(timeout_millis)
 {
 }
 }

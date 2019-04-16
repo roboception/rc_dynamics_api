@@ -54,7 +54,7 @@ TrajectoryTime TrajectoryTime::RelativeToEnd(unsigned long sec, unsigned long ns
   return TrajectoryTime(-sec, -nsec, true);
 }
 
-TrajectoryTime::TrajectoryTime(long sec, long nsec, bool relative) : _relative(relative), _sec(sec), _nsec(nsec)
+TrajectoryTime::TrajectoryTime(long sec, long nsec, bool relative) : relative_(relative), sec_(sec), nsec_(nsec)
 {
   if (!relative && (sec < 0 || nsec < 0))
   {

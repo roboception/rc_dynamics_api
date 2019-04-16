@@ -172,16 +172,16 @@ public:
 #endif
 
     // parse msgs as probobuf
-    auto pbMsg = std::shared_ptr<PbMsgType>(new PbMsgType());
-    pbMsg->ParseFromArray(_buffer, msg_size);
-    return pbMsg;
+    auto pb_msg = std::shared_ptr<PbMsgType>(new PbMsgType());
+    pb_msg->ParseFromArray(_buffer, msg_size);
+    return pb_msg;
   }
 
   /**
    * Receives the next message from data stream (string-parameter version)
    *
    * This method blocks until the next message is available and returns it -
-   * de-serialized as specified by the pbMsgType parameter - as a pb::Message
+   * de-serialized as specified by the pb_msg_type parameter - as a pb::Message
    * base class pointer, or until it runs into user-specified timeout (see
    * setTimeout(...)).
    *
@@ -191,18 +191,18 @@ public:
    *
    * @return the next rc_dynamics data stream message as a pb::Message base class pointer, or NULL if timeout
    */
-  virtual std::shared_ptr<::google::protobuf::Message> receive(const std::string& pbMsgType)
+  virtual std::shared_ptr<::google::protobuf::Message> receive(const std::string& pb_msg_type)
   {
-    auto found = _recv_func_map.find(pbMsgType);
+    auto found = _recv_func_map.find(pb_msg_type);
     if (found == _recv_func_map.end())
     {
       std::stringstream msg;
-      msg << "Unsupported protobuf message type '" << pbMsgType << "'. Only the following types are supported: ";
+      msg << "Unsupported protobuf message type '" << pb_msg_type << "'. Only the following types are supported: ";
       for (auto const& p : _recv_func_map)
         msg << p.first << " ";
       throw std::invalid_argument(msg.str());
     }
-    return _recv_func_map[pbMsgType]();
+    return _recv_func_map[pb_msg_type]();
   }
 
 protected:

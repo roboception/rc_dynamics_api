@@ -96,22 +96,22 @@ public:
 
   inline bool isRelative() const
   {
-    return _relative;
+    return relative_;
   }
 
   inline long getSec() const
   {
-    return _sec;
+    return sec_;
   }
 
   inline long getNsec() const
   {
-    return _nsec;
+    return nsec_;
   }
 
 protected:
-  bool _relative;
-  long _sec, _nsec;
+  bool relative_;
+  long sec_, nsec_;
 };
 }
 
