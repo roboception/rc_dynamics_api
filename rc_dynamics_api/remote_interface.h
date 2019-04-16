@@ -160,8 +160,21 @@ public:
 
   /**
    * Returns the current state of rc_dynamics module
+   * @return the current state.
    */
   std::string getDynamicsState();
+
+  /**
+   * Returns the current state of rc_slam module
+   * @return the current state.
+   */
+  std::string getSlamState();
+
+  /**
+   * Returns the current state of rc_stereo_ins module
+   * @return the current state.
+   */
+  std::string getStereoInsState();
 
   /**
    * Sets rc_dynamics module to running state.

@@ -205,6 +205,8 @@ int main(int argc, char* argv[])
     for (auto&& s : streams)
       cout << left << setw(first_column_width) << s << rc_dynamics->getPbMsgTypeOfStream(s) << endl;
     cout << endl << "rc_dynamics is in state: " << rc_dynamics->getDynamicsState();
+    cout << endl << "rc_slam is in state: " << rc_dynamics->getSlamState();
+    cout << endl << "rc_stereo_ins is in state: " << rc_dynamics->getStereoInsState();
     cout << endl;
     return EXIT_SUCCESS;
   }

@@ -259,16 +259,6 @@ RemoteInterface::RemoteInterface(const string& rc_visard_ip, unsigned int reques
   }
 }
 
-
-string RemoteInterface::getDynamicsState()
-{
-  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_dynamics/status"};
-  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
-  handleCPRResponse(response);
-  auto j = json::parse(response.text);
-  return j["values"]["state"];
-}
-
 RemoteInterface::~RemoteInterface()
 {
   try {
@@ -293,6 +283,33 @@ RemoteInterface::~RemoteInterface()
            << ": " << toString(s.second) << endl;
     }
   }
+}
+
+string RemoteInterface::getDynamicsState()
+{
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_dynamics/status"};
+  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+  return j["values"]["state"];
+}
+
+string RemoteInterface::getSlamState()
+{
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_slam/status"};
+  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+  return j["values"]["state"];
+}
+
+string RemoteInterface::getStereoInsState()
+{
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_stereo_ins/status"};
+  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
+  handleCPRResponse(response);
+  auto j = json::parse(response.text);
+  return j["values"]["state"];
 }
 
 std::string RemoteInterface::callDynamicsService(std::string service_name)
