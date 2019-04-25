@@ -55,6 +55,7 @@ const std::string RemoteInterface::State::WAITING_FOR_INS = "WAITING_FOR_INS";
 const std::string RemoteInterface::State::WAITING_FOR_INS_AND_SLAM = "WAITING_FOR_INS_AND_SLAM";
 const std::string RemoteInterface::State::WAITING_FOR_SLAM = "WAITING_FOR_SLAM";
 const std::string RemoteInterface::State::RUNNING_WITH_SLAM = "RUNNING_WITH_SLAM";
+const std::string RemoteInterface::State::UNKNOWN = "UNKNOWN";
 
 string toString(cpr::Response resp)
 {
@@ -285,31 +286,33 @@ RemoteInterface::~RemoteInterface()
   }
 }
 
-string RemoteInterface::getDynamicsState()
-{
-  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_dynamics/status"};
+string RemoteInterface::getState(const std::string& node) {
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/" + node + "/status"};
   auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
   handleCPRResponse(response);
-  auto j = json::parse(response.text);
-  return j["values"]["state"];
+  try
+  {
+    auto j = json::parse(response.text);
+    return j["values"]["state"];
+  } catch (std::domain_error &e) {
+    // in case "state" field does not exist, return UNKNOWN
+    return State::UNKNOWN;
+  }
+}
+
+string RemoteInterface::getDynamicsState()
+{
+  return getState("rc_dynamics");
 }
 
 string RemoteInterface::getSlamState()
 {
-  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_slam/status"};
-  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
-  handleCPRResponse(response);
-  auto j = json::parse(response.text);
-  return j["values"]["state"];
+  return getState("rc_slam");
 }
 
 string RemoteInterface::getStereoInsState()
 {
-  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_stereo_ins/status"};
-  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
-  handleCPRResponse(response);
-  auto j = json::parse(response.text);
-  return j["values"]["state"];
+  return getState("rc_stereo_ins");
 }
 
 std::string RemoteInterface::callDynamicsService(std::string service_name)

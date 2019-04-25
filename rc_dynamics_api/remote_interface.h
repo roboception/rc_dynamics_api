@@ -93,6 +93,7 @@ public:
     static const std::string WAITING_FOR_SLAM;   ///< Stereo INS is running, waiting for SLAM data, will proceed to
                                                  ///RUNNING_WITH_SLAM
     static const std::string RUNNING_WITH_SLAM;  ///< Stereo INS and SLAM are running.
+    static const std::string UNKNOWN;            ///< State of component is unknown, e.g. not yet reported
   };
 
   struct ReturnCode
@@ -354,6 +355,7 @@ protected:
   /// Common functionality for start(), startSlam(), stop(), ...
   std::string callDynamicsService(std::string service_name);
   ReturnCode callSlamService(std::string service_name, unsigned int timeout_ms = 0); ///< call slam services which have a return code with value and message
+  std::string getState(const std::string& node);
 
   std::string visard_addrs_;
   float visard_version_; ///< rc_visard's firmware version as double, i.e. major.minor, e.g. 1.6
