@@ -186,10 +186,21 @@ int main(int argc, char* argv[])
   }
 
   /**
-   * Instantiate RemoteInterface
+   * Instantiate and connect RemoteInterface
    */
   cout << "connecting to rc_visard " << visard_ip << "..." << endl;
   auto rc_dynamics = RemoteInterface::create(visard_ip);
+  try {
+    while (!caught_signal && !rc_dynamics->checkSystemReady())
+    {
+      cout << "... system not yet ready. Trying again." << endl;
+      usleep(1000*500);
+    }
+    cout << "... connected!" << endl;
+  } catch (exception &e) {
+    cout << "ERROR! Could not connect to rc_dynamics module on rc_visard: " << e.what() << endl;
+    return EXIT_FAILURE;
+  }
 
   /* Only list available streams of device and exit */
   if (only_list_streams)

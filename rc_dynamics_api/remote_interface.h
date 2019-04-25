@@ -160,6 +160,12 @@ public:
   virtual ~RemoteInterface();
 
   /**
+   * Connects with rc_visard and checks the system state of the rc_visard device
+   * @return true, if system is ready, false otherwise
+   */
+  bool checkSystemReady();
+
+  /**
    * Returns the current state of rc_dynamics module
    * @return the current state.
    */
@@ -358,6 +364,7 @@ protected:
   std::string getState(const std::string& node);
 
   std::string visard_addrs_;
+  bool initialized_;     ///< indicates if remote_interface was initialized properly at least once, see checkSystemReady()
   float visard_version_; ///< rc_visard's firmware version as double, i.e. major.minor, e.g. 1.6
   std::map<std::string, std::list<std::string>> req_streams_;
   std::list<std::string> avail_streams_;

@@ -222,7 +222,8 @@ RemoteInterface::Ptr RemoteInterface::create(const string& rc_visard_inet_addrs,
 }
 
 RemoteInterface::RemoteInterface(const string& rc_visard_ip, unsigned int requests_timeout)
-  : visard_addrs_(rc_visard_ip), base_url_("http://" + visard_addrs_ + "/api/v1"), timeout_curl_(requests_timeout)
+  : visard_addrs_(rc_visard_ip), initialized_(false), visard_version_(0.0),
+    base_url_("http://" + visard_addrs_ + "/api/v1"), timeout_curl_(requests_timeout)
 {
   req_streams_.clear();
   protobuf_map_.clear();
@@ -231,32 +232,6 @@ RemoteInterface::RemoteInterface(const string& rc_visard_ip, unsigned int reques
   if (!isValidIPAddress(rc_visard_ip))
   {
     throw invalid_argument("Given IP address is not a valid address: " + rc_visard_ip);
-  }
-
-  // initial connection to rc_visard to get version...
-  visard_version_ = 0.0;
-  auto get = cprGetWithRetry(cpr::Url{ base_url_ + "/system" },
-                             cpr::Timeout{ timeout_curl_ });
-  handleCPRResponse(get);
-  string version = json::parse(get.text)["firmware"]["active_image"]["image_version"];
-  std::smatch match;
-  if (std::regex_search(version, match, std::regex("v(\\d+).(\\d+).(\\d+)")))
-  {
-    visard_version_ = stof(match[0].str().substr(1,3));
-  }
-
-  // ...and get streams, i.e. do get request on
-  // respective url (no parameters needed for this simple service call)
-  get = cprGetWithRetry(cpr::Url{ base_url_ + "/datastreams" },
-                        cpr::Timeout{ timeout_curl_ });
-  handleCPRResponse(get);
-
-  // parse text of response into json object
-  auto j = json::parse(get.text);
-  for (const auto& stream : j)
-  {
-    avail_streams_.push_back(stream["name"]);
-    protobuf_map_[stream["name"]] = stream["protobuf"];
   }
 }
 
@@ -284,6 +259,57 @@ RemoteInterface::~RemoteInterface()
            << ": " << toString(s.second) << endl;
     }
   }
+}
+
+bool RemoteInterface::checkSystemReady()
+{
+  initialized_=false;
+  visard_version_=0.0;
+  req_streams_.clear();
+  protobuf_map_.clear();
+
+  cpr::Url url = cpr::Url{ base_url_ + "/system"};
+  auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
+  if (response.status_code == 502) // bad gateway
+  {
+    return false;
+  }
+  handleCPRResponse(response);
+
+  // initial connection to rc_visard to check if system is ready ...
+  auto get_system = cprGetWithRetry(cpr::Url{ base_url_ + "/system" },
+                             cpr::Timeout{ timeout_curl_ });
+  handleCPRResponse(get_system);
+  auto j = json::parse(get_system.text);
+  if (!j["ready"])
+  {
+    return false;
+  }
+
+  // ... and to get version of rc_visard
+  string version = j["firmware"]["active_image"]["image_version"];
+  std::smatch match;
+  if (std::regex_search(version, match, std::regex("v(\\d+).(\\d+).(\\d+)")))
+  {
+    visard_version_ = stof(match[0].str().substr(1,3));
+  }
+
+  // ...and to get streams
+  auto get_streams = cprGetWithRetry(cpr::Url{ base_url_ + "/datastreams" },
+                        cpr::Timeout{ timeout_curl_ });
+  handleCPRResponse(get_streams);
+
+  // parse text of response into json object
+  j = json::parse(get_streams.text);
+  for (const auto& stream : j)
+  {
+    avail_streams_.push_back(stream["name"]);
+    protobuf_map_[stream["name"]] = stream["protobuf"];
+  }
+
+  // return true if system is ready
+  initialized_ = true;
+  return true;
 }
 
 string RemoteInterface::getState(const std::string& node) {
@@ -484,6 +510,11 @@ RemoteInterface::ReturnCode RemoteInterface::removeSlamMap(unsigned int timeout_
 
 list<string> RemoteInterface::getAvailableStreams()
 {
+  if (!initialized_ && !checkSystemReady())
+  {
+    throw std::runtime_error("RemoteInterface not properly initialized or rc_visard is not ready. "
+                             "Please initialize with method RemoteInterface::checkSystemReady()!");
+  }
   return avail_streams_;
 }
 
@@ -728,6 +759,11 @@ void RemoteInterface::cleanUpRequestedStreams()
 
 void RemoteInterface::checkStreamTypeAvailable(const string& stream)
 {
+  if (!initialized_ && !checkSystemReady())
+  {
+    throw std::runtime_error("RemoteInterface not properly initialized or rc_visard is not ready. "
+                             "Please initialize with method RemoteInterface::checkSystemReady()!");
+  }
   auto found = find(avail_streams_.begin(), avail_streams_.end(), stream);
   if (found == avail_streams_.end())
   {
