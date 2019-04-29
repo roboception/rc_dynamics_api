@@ -82,7 +82,7 @@ public:
    * @param port port number for receiving data
    * @return
    */
-  static Ptr create(std::string ip_address, unsigned int& port)
+  static Ptr create(const std::string& ip_address, unsigned int& port)
   {
     return Ptr(new DataReceiver(ip_address, port));
   }
@@ -94,6 +94,20 @@ public:
 #else
     close(_sockfd);
 #endif
+  }
+
+  /**
+   * Returns Ip address for which the receiver was created
+   */
+  std::string getIpAddress() const {
+    return ip_;
+  }
+
+  /**
+   * Returns port  for which the receiver was created
+   */
+  unsigned int getPort() const {
+    return port_;
   }
 
   /**
@@ -206,7 +220,7 @@ public:
   }
 
 protected:
-  DataReceiver(std::string ip_address, unsigned int& port)
+  DataReceiver(const std::string& ip_address, unsigned int& port) : ip_(ip_address), port_(port)
   {
     // check if given string is a valid IP address
     if (!rc::isValidIPAddress(ip_address))
@@ -255,7 +269,7 @@ protected:
 
         throw SocketException("Error while getting socket name!", errno);
       }
-      port = ntohs(myaddr.sin_port);
+      port_ = port = ntohs(myaddr.sin_port);
     }
 
     // register all known protobuf message types
@@ -277,6 +291,9 @@ protected:
 
   typedef std::map<std::string, std::function<std::shared_ptr<::google::protobuf::Message>()>> map_type;
   map_type _recv_func_map;
+
+  std::string ip_;
+  unsigned int port_;
 };
 }
 }
