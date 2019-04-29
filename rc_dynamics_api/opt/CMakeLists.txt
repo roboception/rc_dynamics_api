@@ -66,7 +66,13 @@ set(BUILD_CPR_TESTS OFF CACHE BOOL "Don't build cpr tests")
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-option(USE_SYSTEM_CURL "If ON, this project will look in the system paths for an installed curl library" ON)
+if (WIN32)
+  set(USE_SYSTEM_CURL_DEFAULT OFF)
+else ()
+  set(USE_SYSTEM_CURL_DEFAULT ON)
+endif ()
+
+option(USE_SYSTEM_CURL "If ON, this project will look in the system paths for an installed curl library" ${USE_SYSTEM_CURL_DEFAULT})
 
 if (USE_SYSTEM_CURL)
   find_package(CURL)
