@@ -97,7 +97,7 @@ void handleCPRResponse(cpr::Response r)
 
 namespace {
 
-  vector<int> wait_before_retry = { 5, 10, 20, 50, 100, 200, 500, 1000};
+  vector<int> wait_before_retry = { 50, 200, 500, 1000, 2000};
 
   // Wrapper around cpr::Get requests which does retries in case of 429 response
   cpr::Response cprGetWithRetry(cpr::Url url, cpr::Timeout timeout) {
