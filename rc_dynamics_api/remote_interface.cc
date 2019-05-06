@@ -267,6 +267,7 @@ bool RemoteInterface::checkSystemReady()
   visard_version_=0.0;
   req_streams_.clear();
   protobuf_map_.clear();
+  avail_streams_.clear();
 
   cpr::Url url = cpr::Url{ base_url_ + "/system"};
   auto response = cprGetWithRetry(url, cpr::Timeout{ timeout_curl_ });
