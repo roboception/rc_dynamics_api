@@ -1,3 +1,14 @@
+0.8.0 (2019-05-08)
+------------------
+
+* BREAKING CHANGE: major refactoring to comply to naming conventions
+* improve cleanup of requested streams
+* add support for http status code 429: too many requests
+* improve error handling and messages
+* add state getters for rc_dynamics, rc_slam, rc_stereo_ins
+* return UNKNOWN if dynamics state is not accessible
+* improve startup behaviour of RemoteInterface
+
 0.7.1 (2019-02-04)
 ------------------
 
