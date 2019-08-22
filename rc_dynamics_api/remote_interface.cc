@@ -50,6 +50,7 @@ namespace dynamics
 // Definitions of static const members
 const std::string RemoteInterface::State::IDLE = "IDLE";
 const std::string RemoteInterface::State::RUNNING = "RUNNING";
+const std::string RemoteInterface::State::STOPPING = "STOPPING";
 const std::string RemoteInterface::State::FATAL = "FATAL";
 const std::string RemoteInterface::State::WAITING_FOR_INS = "WAITING_FOR_INS";
 const std::string RemoteInterface::State::WAITING_FOR_INS_AND_SLAM = "WAITING_FOR_INS_AND_SLAM";
@@ -353,12 +354,21 @@ std::string RemoteInterface::callDynamicsService(std::string service_name)
 
   try
   {
+    const static vector<string> valid_states = {
+      State::IDLE,
+      State::RUNNING,
+      State::STOPPING,
+      State::FATAL,
+      State::WAITING_FOR_INS,
+      State::WAITING_FOR_INS_AND_SLAM,
+      State::WAITING_FOR_SLAM,
+      State::RUNNING_WITH_SLAM,
+      State::UNKNOWN
+    };
     entered_state = j["response"]["current_state"].get<std::string>();
-    if (entered_state != State::IDLE and entered_state != State::RUNNING and entered_state != State::FATAL and
-        entered_state != State::WAITING_FOR_INS and entered_state != State::WAITING_FOR_INS_AND_SLAM and
-        entered_state != State::WAITING_FOR_SLAM and entered_state != State::RUNNING_WITH_SLAM)
+    if (std::count(valid_states.begin(), valid_states.end(), entered_state) == 0)
     {
-      // mismatch between rc_dynamics states and states used in this class?
+      // mismatch between rc_slam states and states used in this class?
       throw InvalidState(entered_state);
     }
 
