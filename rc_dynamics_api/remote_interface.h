@@ -329,6 +329,15 @@ public:
                                                   unsigned int timeout_ms = 0);
 
   /**
+   * Returns the transformation from camera to IMU coordinate frame.
+   *
+   * This is equivalent to the cam2imu_transform in the Dynamics message.
+   *
+   * @param timeout_ms timeout in ms for the call (default 0: no timeout)
+   */
+  roboception::msgs::Frame getCam2ImuTransform(unsigned int timeout_ms = 0);
+
+  /**
    * Convenience method that automatically
    *
    *  1) creates a data receiver (including binding socket to a local network interface)

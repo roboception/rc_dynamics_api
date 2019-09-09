@@ -641,11 +641,13 @@ void RemoteInterface::deleteDestinationsFromStream(const string& stream, const l
 
 namespace
 {
+
+// TODO: find an automatic way to parse Messages from Json
+// * is possible with protobuf >= 3.0.x
+// * https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.json_util
+
 roboception::msgs::Trajectory toProtobufTrajectory(const json js)
 {
-  // TODO: find an automatic way to parse Messages from Json
-  // * is possible with protobuf >= 3.0.x
-  // * https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.json_util
   roboception::msgs::Trajectory pb_traj;
 
   json::const_iterator js_it;
@@ -684,7 +686,39 @@ roboception::msgs::Trajectory toProtobufTrajectory(const json js)
   }
   return pb_traj;
 }
+
+roboception::msgs::Frame toProtobufFrame(const json& js, bool producer_optional)
+{
+  roboception::msgs::Frame pb_frame;
+
+  pb_frame.set_parent(js.at("parent").get<string>());
+  pb_frame.set_name(js.at("name").get<string>());
+
+  // if producer is optional don't throw exception if not found
+  if (!producer_optional || js.find("producer") != js.end())
+  {
+    pb_frame.set_producer(js.at("producer").get<string>());
+  }
+
+  auto js_pose = js.at("pose");
+  auto pb_pose = pb_frame.mutable_pose();
+  pb_pose->mutable_timestamp()->set_sec(js_pose.at("timestamp").at("sec"));
+  pb_pose->mutable_timestamp()->set_nsec(js_pose.at("timestamp").at("nsec"));
+
+  auto js_pose_pose = js_pose.at("pose");
+  auto pb_pose_pose = pb_pose->mutable_pose();
+  pb_pose_pose->mutable_position()->set_x(js_pose_pose.at("position").at("x"));
+  pb_pose_pose->mutable_position()->set_y(js_pose_pose.at("position").at("y"));
+  pb_pose_pose->mutable_position()->set_z(js_pose_pose.at("position").at("z"));
+  pb_pose_pose->mutable_orientation()->set_w(js_pose_pose.at("orientation").at("w"));
+  pb_pose_pose->mutable_orientation()->set_x(js_pose_pose.at("orientation").at("x"));
+  pb_pose_pose->mutable_orientation()->set_y(js_pose_pose.at("orientation").at("y"));
+  pb_pose_pose->mutable_orientation()->set_z(js_pose_pose.at("orientation").at("z"));
+
+  return pb_frame;
 }
+
+} //anonymous namespace
 
 roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const TrajectoryTime& start, const TrajectoryTime& end, unsigned int timeout_ms)
 {
@@ -701,13 +735,24 @@ roboception::msgs::Trajectory RemoteInterface::getSlamTrajectory(const Trajector
   if (end.isRelative())
     js_args["args"]["end_time_relative"] = true;
 
-  // get request on slam module
+  // put request on slam module to get the trajectory
   cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_slam/services/get_trajectory" };
   auto get = cprPutWithRetry(url, cpr::Timeout{ (int32_t)timeout_ms }, cpr::Body{ js_args.dump() });
   handleCPRResponse(get);
 
   auto js = json::parse(get.text)["response"]["trajectory"];
   return toProtobufTrajectory(js);
+}
+
+roboception::msgs::Frame RemoteInterface::getCam2ImuTransform(unsigned int timeout_ms) {
+
+  // put request on dynamics module to get the cam2imu transfrom
+  cpr::Url url = cpr::Url{ base_url_ + "/nodes/rc_dynamics/services/get_cam2imu_transform" };
+  auto get = cprPutWithRetry(url, cpr::Timeout{ (int32_t)timeout_ms });
+  handleCPRResponse(get);
+
+  auto js = json::parse(get.text)["response"];
+  return toProtobufFrame(js, true);
 }
 
 DataReceiver::Ptr RemoteInterface::createReceiverForStream(const string& stream, const string& dest_interface,
