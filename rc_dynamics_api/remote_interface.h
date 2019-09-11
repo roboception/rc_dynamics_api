@@ -150,6 +150,15 @@ public:
     }
   };
 
+  /// Thrown if a REST API call is rejected because of 404; i.e. URL not found
+  class NotAvailable : public std::runtime_error
+  {
+  public:
+    explicit NotAvailable(std::string url) : runtime_error("Requested resource is not available on rc_visard (returned http error code 404): " + url)
+    {
+    }
+  };
+
   /**
    * Creates a local instance of rc_visard's remote pose interface
    *

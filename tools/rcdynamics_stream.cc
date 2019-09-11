@@ -220,7 +220,14 @@ int main(int argc, char* argv[])
     cout << endl << "rc_slam is in state: " << rc_dynamics->getSlamState();
     cout << endl << "rc_stereo_ins is in state: " << rc_dynamics->getStereoInsState() << endl;
 
-    cout << endl << "cam2imu transformation: " << endl << rc_dynamics->getCam2ImuTransform().DebugString();
+    try {
+      auto cam2imu = rc_dynamics->getCam2ImuTransform();
+      cout << endl << "cam2imu transformation: " << endl << cam2imu.DebugString();
+    } catch (RemoteInterface::NotAvailable& e) {
+      cout << endl << "WARN: Could not retrieve cam2imu transformation from rc_visard. Feature is not available in that image version." << endl;
+    } catch (std::exception &e) {
+      cout << endl << "ERROR: Could not retrieve cam2imu transformation from rc_visard: " << e.what() << endl;
+    }
     cout << endl;
     return EXIT_SUCCESS;
   }

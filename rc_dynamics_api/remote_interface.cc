@@ -91,6 +91,8 @@ void handleCPRResponse(cpr::Response r)
       return;
     case 429:
       throw RemoteInterface::TooManyRequests(r.url);
+    case 404:
+      throw RemoteInterface::NotAvailable(r.url);
     default:
       throw runtime_error(toString(r));
   }
