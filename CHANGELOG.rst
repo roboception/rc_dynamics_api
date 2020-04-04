@@ -1,5 +1,11 @@
+0.10.1 (2020-04-04)
+-------------------
+
+* update cpr for support of curl >= 7.62.0
+* update nlohmann json to 3.7.3
+
 0.10.0 (2019-09-11)
-------------------
+-------------------
 
 * improve exception handling using new NotAvailable
 
