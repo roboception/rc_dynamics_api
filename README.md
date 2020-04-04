@@ -35,7 +35,7 @@ submodules by:
     git submodule update --init --recursive
 
 Additionally this packages uses the single header file of
-- **[JSON for Modern C++](https://github.com/nlohmann/json) (version v2.0.0):**
+- **[JSON for Modern C++](https://github.com/nlohmann/json) (version 3.7.3):**
 A simple and modern C++ JSON parsing library.
 
 ### Linux

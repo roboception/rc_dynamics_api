@@ -87,10 +87,6 @@ endif ()
 
 add_subdirectory(cpr)
 
-# Submodule: JSON
-
-set(JSON_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/json/src PARENT_SCOPE)
-
 # Submodule: Protobuf
 
 option(USE_SYSTEM_PROTOBUF "If ON, this project will look in the system paths for an installed protobuf compiler and library" ON)
