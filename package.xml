@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
     <name>rc_dynamics_api</name>
-    <version>0.10.1</version>
+    <version>0.10.2</version>
     <description>
       The rc_dynamics_api provides an API for easy handling of the dynamic-state data
       streams provided by Roboception's stereo camera with self-localization.
@@ -27,7 +27,6 @@
     <url type="bugtracker">https://github.com/roboception/rc_dynamics_api/issues</url>
 
     <buildtool_depend>cmake</buildtool_depend>
-    <build_export_depend>catkin</build_export_depend>
 
     <build_depend>protobuf-dev</build_depend>
     <exec_depend>protobuf</exec_depend>

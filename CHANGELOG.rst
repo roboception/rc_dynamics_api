@@ -1,3 +1,8 @@
+0.10.2 (2020-04-06)
+-------------------
+
+* remove build_export_depend on catkin from package.xml
+
 0.10.1 (2020-04-04)
 -------------------
 
