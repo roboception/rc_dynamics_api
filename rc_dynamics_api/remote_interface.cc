@@ -109,7 +109,11 @@ namespace {
       if (response.status_code == 429) {
         cout << "WARNING: Got http code 429 (too many requests) on "
              << url << ". Retrying in " << retry << "ms..." << endl;
+#ifdef WIN32
+        Sleep(retry);
+#else
         usleep(1000 * retry);
+#endif
         continue;
       }
       return response;
@@ -133,7 +137,11 @@ namespace {
       if (response.status_code==429) {
         cout << "WARNING: Got http code 429 (too many requests) on "
              << url << ". Retrying in " << retry << "ms..." << endl;
+#ifdef WIN32
+        Sleep(retry);
+#else
         usleep(1000 * retry);
+#endif
         continue;
       }
       return response;
@@ -157,7 +165,11 @@ namespace {
       if (response.status_code==429) {
         cout << "WARNING: Got http code 429 (too many requests) on "
              << url << ". Retrying in " << retry << "ms..." << endl;
+#ifdef WIN32
+        Sleep(retry);
+#else
         usleep(1000 * retry);
+#endif
         continue;
       }
       return response;

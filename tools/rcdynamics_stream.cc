@@ -194,7 +194,11 @@ int main(int argc, char* argv[])
     while (!caught_signal && !rc_dynamics->checkSystemReady())
     {
       cout << "... system not yet ready. Trying again." << endl;
-      usleep(1000*500);
+#ifdef WIN32
+     Sleep(500);
+#else
+     usleep(1000*500);
+#endif
     }
     cout << "... connected!" << endl;
   } catch (exception &e) {
