@@ -1,10 +1,10 @@
 # This cmake code creates the configuration that is found and used by
 # find_package() of another cmake project
 
-# Do not Error on non-existent target in get_target_property.
-if(POLICY CMP0045)
-  cmake_policy(SET CMP0045 OLD)
-endif()
+# Error on non-existent target in get_target_property.
+if (POLICY CMP0045)
+  cmake_policy(SET CMP0045 NEW)
+endif ()
 
 # Go through all static libraries and add the INTERFACE_LINK_LIBRARIES of all
 # dependencies also to the INTERFACE_LINK_LIBRARIES of the static libraries
