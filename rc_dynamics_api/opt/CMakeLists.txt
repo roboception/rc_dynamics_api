@@ -2,6 +2,10 @@
 unset(PROJECT_VERSION)
 unset(PACKAGE_VERSION)
 
+# The submodules declare cmake_minimum_required < 3.5, which CMake >= 4.0
+# rejects. Raise the policy floor for them only (variable is directory-scoped).
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 if (MSVC)
   # Switching off compiler warnings in sub-modules and generated code
   add_definitions("/wd4013")
