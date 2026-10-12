@@ -46,6 +46,18 @@ variables:
     - armhf
     - docker
 
+.amd64_resolute_t: &amd64_resolute_job
+  image: registry.roboception.de/tools/docker_images:resolute-buildimage
+  tags:
+    - amd64
+    - docker
+
+.arm64_resolute_t: &arm64_resolute_job
+  image: registry.roboception.de/tools/docker_images:resolute-buildimage
+  tags:
+    - arm64
+    - docker
+
 #############
 # Templates
 #############
@@ -138,6 +150,14 @@ test:noble:arm64:
   <<: *arm64_noble_job
   extends: .test
 
+test:resolute:amd64:
+  <<: *amd64_resolute_job
+  extends: .test
+
+test:resolute:arm64:
+  <<: *arm64_resolute_job
+  extends: .test
+
 # Deploy testing (only on master)
 #################################
 package_testing:jammy:amd64:
@@ -162,6 +182,14 @@ package_testing:noble:armhf:
 
 package_testing:noble:arm64:
   <<: *arm64_noble_job
+  extends: .package_testing
+
+package_testing:resolute:amd64:
+  <<: *amd64_resolute_job
+  extends: .package_testing
+
+package_testing:resolute:arm64:
+  <<: *arm64_resolute_job
   extends: .package_testing
 
 ################
@@ -192,4 +220,12 @@ package_stable:noble:armhf:
 
 package_stable:noble:arm64:
   <<: *arm64_noble_job
+  extends: .package_stable
+
+package_stable:resolute:amd64:
+  <<: *amd64_resolute_job
+  extends: .package_stable
+
+package_stable:resolute:arm64:
+  <<: *arm64_resolute_job
   extends: .package_stable
